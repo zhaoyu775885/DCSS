@@ -60,15 +60,16 @@ class DcpsLearner(AbstractLearner):
         return optim.Adam(gates, lr=self.init_lr*0.1)
 
     def _setup_lr_scheduler_warmup(self):
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
+        return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_warmup, T_max=self.args.num_epoch)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
 
     def _setup_lr_scheduler_train(self):
-        # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_train, T_max=150, eta_min=1e-4)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+        return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_train, T_max=self.args.num_epoch)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
 
     def _setup_lr_scheduler_search(self):
-        # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_search, T_max=150, eta_min=1e-4)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_search, milestones=[50, 100], gamma=0.1)
+        return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_search, T_max=self.args.num_epoch)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_search, milestones=[50, 100], gamma=0.1)
 
     def metrics(self, outputs, labels, flops=None, prob_list=None):
         _, predicted = torch.max(outputs, 1)
@@ -91,11 +92,10 @@ class DcpsLearner(AbstractLearner):
         return accuracy, loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        # self.train_warmup(n_epoch=150, save_path=self.args.warmup_dir)
-        # tau = self.train_search(n_epoch=150,
-        #                         load_path=self.args.warmup_dir,
-        #                         save_path=self.args.search_dir)
-        tau = 0.1
+        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        tau = self.train_search(n_epoch=self.args.num_epoch_search,
+                                load_path=self.args.warmup_dir,
+                                save_path=self.args.search_dir)
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)

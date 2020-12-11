@@ -29,6 +29,8 @@ def main():
     parser.add_argument('--momentum', default=0.9, type=float, help='Momentum for SGD')
     parser.add_argument('--dst_flag', default=0, type=int, help='Dst Flag')
     parser.add_argument('--prune_flag', default=0, type=int, help='Prune Flag')
+    parser.add_argument('--num_epoch_warmup', default=250, type=int, help='Number of Epochs for warmup')
+    parser.add_argument('--num_epoch_search', default=250, type=int, help='Number of Epochs for search')
     parser.add_argument('--teacher_net', default='resnet', choices=['resnet'], help='Net')
     parser.add_argument('--teacher_net_index', default=20, type=int, choices=[18, 20, 32, 34, 50, 56], help='Index')
     parser.add_argument('--dst_temperature', default=1.0, type=float, help='temperature')
