@@ -5,9 +5,6 @@ from timeit import default_timer as timer
 from learner.abstract_learner import AbstractLearner
 import os
 
-# L2_REG = 5e-4
-# todo:
-
 
 class FullLearner(AbstractLearner):
     def __init__(self, dataset, net, device, args, teacher=None):

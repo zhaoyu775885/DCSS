@@ -13,12 +13,6 @@ from itertools import cycle
 from nets.resnet_lite import ResNetChannelList
 
 
-# BATCH_SIZE = 128
-# INIT_LR = 1e-1
-# MOMENTUM = 0.9
-# L2_REG = 5e-4
-
-
 class DcpsLearner(AbstractLearner):
     def __init__(self, dataset, net, device, args, teacher=None):
         super(DcpsLearner, self).__init__(dataset, net, device, args)
