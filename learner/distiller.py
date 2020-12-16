@@ -12,6 +12,7 @@ class Distiller(FullLearner):
         self.log_softmax = nn.LogSoftmax(dim=1)
         self.softmax = nn.Softmax(dim=1)
         self.net.eval()
+        print('=============================')
         print('Performance of the Teacher')
         self.test()
 

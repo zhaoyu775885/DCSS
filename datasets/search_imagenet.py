@@ -1,9 +1,9 @@
-import os
-import os.path
-import shutil
-import warnings
 import random
 import torch
+import warnings
+import os
+import shutil
+import tempfile
 from contextlib import contextmanager
 from torchvision.datasets.folder import ImageFolder
 from torchvision.datasets.utils import check_integrity, extract_archive, verify_str_arg

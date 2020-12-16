@@ -17,18 +17,19 @@ import cv2
 # Must with key as 'in_data' and 'gt'
 # patch_size is the patch size of lr image
 class DatasetHDF5(data.Dataset):
-    def __init__(self, h5_path, length=None, patch_size=48, scale=2, enlarge=False):
+    def __init__(self, h5_path, length=None, patch_size=48, scale=2, enlarge=False, search=False, split_2nd=12800):
         super(DatasetHDF5, self).__init__()
-        self.length = length
-        # self.batch_size = batch_size
+        self.h5_path = h5_path
+        self.length = length if search is False else length - split_2nd
         self.patch_size = patch_size
         self.scale = scale
         self.enlarge = enlarge
-        self.h5_path = h5_path
+        self.search = search
+        self.split_2nd = split_2nd
 
         with h5py.File(h5_path, 'r') as h5_file:
             self.keys = list(h5_file['in_data'].keys())
-            self.num_images = len(self.keys)
+            self.num_images = len(self.keys) if search is False else len(self.keys) - split_2nd
 
     def __getitem__(self, index):
         ind_im = random.randint(0, self.num_images - 1)
@@ -39,6 +40,17 @@ class DatasetHDF5(data.Dataset):
         in_data, im_gt = self._get_patch(in_data, im_gt)
         im_gt = torch.from_numpy(im_gt.transpose((2, 0, 1)))
         in_data = torch.from_numpy(in_data.transpose((2, 0, 1)))
+
+        if self.search:
+            ind_im_val = random.randint(self.num_images, self.num_images+self.split_2nd-1)
+            with h5py.File(self.h5_path, 'r') as h5_file:
+                indices_val = self.keys[ind_im_val]
+                im_gt_val = np.array(h5_file['gt'][indices_val])
+                in_data_val = np.array(h5_file['in_data'][indices_val])
+            in_data_val, im_gt_val = self._get_patch(in_data_val, im_gt_val)
+            im_gt_val = torch.from_numpy(im_gt_val.transpose((2, 0, 1)))
+            in_data_val = torch.from_numpy(in_data_val.transpose((2, 0, 1)))
+            return in_data, im_gt, in_data_val, im_gt_val
 
         return in_data, im_gt
 

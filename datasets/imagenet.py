@@ -28,8 +28,7 @@ class ImageNet:
         imagenet_dataset = dataset_fn(root=self.data_dir, split='train' if is_train else 'val',
                                       transform=train_transform if is_train else valid_transform)
 
-        print('---------')
-        print(len(imagenet_dataset))
+        print('train' if is_train else 'valid', 'samples: ', len(imagenet_dataset))
 
         # if valid:
         #     dataset_train, dataset_valid = torch.utils.data.random_split(cifar_dataset, [45000, 5000])

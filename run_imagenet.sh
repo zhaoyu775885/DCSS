@@ -66,9 +66,11 @@ if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	WARMUP_DIR=${WORKROOT}/${NET_DATASET}/warmup
 	SEARCH_DIR=${WORKROOT}/${NET_DATASET}/search
 	mkdir -p ${SLIM_DIR} ${WARMUP_DIR} ${SEARCH_DIR}
-	NUM_EPOCH_WARMUP=40
-	NUM_EPOCH_SEARCH=40
-	PRUNE_ARGUMENTS+="--num_epoch_warmup ${NUM_EPOCH_WARMUP}
+	WEIGHT_FLOPS=2.0
+	NUM_EPOCH_WARMUP=50
+	NUM_EPOCH_SEARCH=60
+	PRUNE_ARGUMENTS+="--weight_flops ${WEIGHT_FLOPS}
+	                  --num_epoch_warmup ${NUM_EPOCH_WARMUP}
 	                  --num_epoch_search ${NUM_EPOCH_SEARCH}
 	                  --warmup_dir ${WARMUP_DIR}
 		                --search_dir ${SEARCH_DIR}

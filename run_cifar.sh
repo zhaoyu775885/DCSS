@@ -42,7 +42,7 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # distillation switch
-DST_FLAG=${FALSE}
+DST_FLAG=${TRUE}
 DST_ARGUMENTS=" --dst_flag ${DST_FLAG} "
 if [ ${DST_FLAG} == ${TRUE} ]; then
 	TEACHER_NET='resnet'
@@ -59,14 +59,20 @@ if [ ${DST_FLAG} == ${TRUE} ]; then
 fi
 
 # prune switch
-PRUNE_FLAG=${FALSE}
+PRUNE_FLAG=${TRUE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim
 	WARMUP_DIR=${WORKROOT}/${NET_DATASET}/warmup
 	SEARCH_DIR=${WORKROOT}/${NET_DATASET}/search
 	mkdir -p ${SLIM_DIR} ${WARMUP_DIR} ${SEARCH_DIR}
-	PRUNE_ARGUMENTS+="--warmup_dir ${WARMUP_DIR}
+	WEIGHT_FLOPS=2.0
+	NUM_EPOCH_WARMUP=150
+	NUM_EPOCH_SEARCH=150
+	PRUNE_ARGUMENTS+="--weight_flops ${WEIGHT_FLOPS}
+	                  --num_epoch_warmup ${NUM_EPOCH_WARMUP}
+	                  --num_epoch_search ${NUM_EPOCH_SEARCH}
+	                  --warmup_dir ${WARMUP_DIR}
 		                --search_dir ${SEARCH_DIR}
 		                --slim_dir ${SLIM_DIR}"
 fi
@@ -76,4 +82,6 @@ BASIC_ARGUMENTS+=${PRUNE_ARGUMENTS}
 echo python -u main.py ${BASIC_ARGUMENTS}
 TIME_TAG=`date +"%Y%m%d_%H%M"`
 LOG_FILE=${LOG_DIR}/${TIME_TAG}.txt
+CMD="python -u main.py ${BASIC_ARGUMENTS}"
+echo ${CMD} > ${LOG_FILE}
 python -u main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}

@@ -38,24 +38,23 @@ class ResidualBlockGated(nn.Module):
 
     def __init__(self, in_planes, out_planes_list, stride=2, project=False, dcfg=None):
         super(ResidualBlockGated, self).__init__()
-
         out_planes_1 = out_planes_list[0]
         out_planes_2 = out_planes_list[1]
         assert dcfg is not None
-        self.dcfg = dcfg
-        self.dcfg_nonreuse = dcfg.copy()
+        # todo: to be deleted
+        # self.dcfg = dcfg
+        # self.dcfg_nonreuse = dcfg.copy()
         self.bn0 = nn.BatchNorm2d(in_planes, momentum=_BATCH_NORM_DECAY, eps=_EPSILON)
         self.conv1 = DNAS.Conv2d(in_planes, out_planes_1, kernel_size=3, stride=stride, padding=1, bias=False,
-                                 dcfg=self.dcfg_nonreuse)
+                                 dcfg=dcfg.copy())
         self.bn1 = nn.BatchNorm2d(out_planes_1, momentum=_BATCH_NORM_DECAY, eps=_EPSILON)
         self.shortcut = None
         # if stride != 1 or len(out_planes_list)>2 or in_planes != out_planes_2:
         if project:
             self.shortcut = DNAS.Conv2d(in_planes, out_planes_list[-1], kernel_size=1, stride=stride, padding=0,
-                                        bias=False, dcfg=self.dcfg_nonreuse)
-            self.dcfg.reuse_gate = self.shortcut.gate
-        self.conv2 = DNAS.Conv2d(out_planes_1, out_planes_2, kernel_size=3, stride=1, padding=1, bias=False,
-                                 dcfg=self.dcfg)
+                                        bias=False, dcfg=dcfg.copy())
+            dcfg.reuse_gate = self.shortcut.gate
+        self.conv2 = DNAS.Conv2d(out_planes_1, out_planes_2, kernel_size=3, stride=1, padding=1, bias=False, dcfg=dcfg)
 
     def forward(self, x, tau=1, noise=False, reuse_prob=None, rmask=None):
         prob = reuse_prob
@@ -208,6 +207,7 @@ class ResNet(nn.Module):
                 x, rmask, prob, blk_prob_list, blk_flops_list = block(x, tau, noise, reuse_prob=prob, rmask=rmask)
                 prob_list += blk_prob_list
                 flops_list += blk_flops_list
+                # todo: seems redundant
                 prob = blk_prob_list[-1]
         x = F.relu(DNAS.weighted_feature(self.bn(x), rmask))
         x = self.avgpool(x)
@@ -245,6 +245,6 @@ if __name__ == '__main__':
     # x = torch.zeros([16, 3, 32, 32])
 
     net = ResNetGated(20, 100)
-    x = torch.zeros([1, 3, 32, 32])
-    y = net(x)
-    print(y.shape)
+    # x = torch.zeros([1, 3, 32, 32])
+    # y = net(x)
+    # print(y.shape)

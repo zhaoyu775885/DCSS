@@ -48,7 +48,7 @@ class Conv2d(nn.Module):
         self.kernel_size = kernel_size
         if dcfg is None:
             return
-        self.dcfg = dcfg.copy()
+        # self.dcfg = dcfg.copy()
 
         if dcfg.split_type not in ['fix_seg_size', 'fix_gp_number', TYPE_A, TYPE_B]:
             raise ValueError('Only \'fix_seg_size\' and \'fix_gp_number\' are supported.')
@@ -129,7 +129,7 @@ class Linear(nn.Module):
         if dcfg is None:
             print('dcfg is None')
             return
-        self.dcfg = dcfg.copy()
+        # self.dcfg = dcfg.copy()
 
         if dcfg.split_type not in ['fix_seg_size', 'fix_gp_number', TYPE_A, TYPE_B]:
             raise ValueError('Only \'fix_seg_size\' and \'fix_gp_number\' are supported.')

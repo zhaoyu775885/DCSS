@@ -5,11 +5,9 @@ from timeit import default_timer as timer
 from nets.resnet_lite import ResNetL
 from learner.abstract_learner import AbstractLearner
 from learner.full import FullLearner
-from learner.distiller import Distiller
 import utils.DNAS as DNAS
 from utils.DNAS import entropy
 import os
-from itertools import cycle
 from nets.resnet_lite import ResNetChannelList
 
 
@@ -23,6 +21,7 @@ class DcpsLearner(AbstractLearner):
         self.test_loader = self._build_dataloader(self.batch_size_test, is_train=False, search=True)
 
         self.init_lr = self.batch_size_train / self.args.std_batch_size * self.args.std_init_lr
+
         # setup optimizer
         self.opt_warmup = self._setup_optimizer_warmup()
         self.lr_scheduler_warmup = self._setup_lr_scheduler_warmup()
@@ -47,23 +46,23 @@ class DcpsLearner(AbstractLearner):
 
     def _setup_optimizer_train(self):
         vars = [item[1] for item in self.forward.named_parameters() if 'gate' not in item[0]]
-        return optim.SGD(vars, lr=self.init_lr*0.1, momentum=self.args.momentum, weight_decay=self.args.weight_decay)
+        return optim.SGD(vars, lr=self.init_lr * 0.1, momentum=self.args.momentum, weight_decay=self.args.weight_decay)
 
     def _setup_optimizer_search(self):
         gates = [item[1] for item in self.forward.named_parameters() if 'gate' in item[0]]
-        return optim.Adam(gates, lr=self.init_lr*0.1)
+        return optim.Adam(gates, lr=self.init_lr * 0.1)
 
     def _setup_lr_scheduler_warmup(self):
-        return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_warmup, T_max=self.args.num_epoch)
         # return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_train(self):
-        return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_train, T_max=self.args.num_epoch)
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+        # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_train, T_max=self.args.num_epoch)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_search(self):
-        return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_search, T_max=self.args.num_epoch)
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_search, milestones=[50, 100], gamma=0.1)
+        # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_search, T_max=self.args.num_epoch)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_search, milestones=[30, 50], gamma=0.1)
 
     def metrics(self, outputs, labels, flops=None, prob_list=None):
         _, predicted = torch.max(outputs, 1)
@@ -73,10 +72,10 @@ class DcpsLearner(AbstractLearner):
         if prob_list is not None:
             for prob in prob_list:
                 prob_loss += entropy(prob)
-            loss += 0.00*prob_loss
+            loss += 0.00 * prob_loss
         tolerance = 0.01
         target_flops = 20000000
-        coef = 0.1
+        coef = self.args.weight_flops
         # if flops < (1 - tolerance) * target_flops:
         #     coef = -10
         # elif flops > (1 + tolerance) * target_flops:
@@ -90,11 +89,13 @@ class DcpsLearner(AbstractLearner):
         tau = self.train_search(n_epoch=self.args.num_epoch_search,
                                 load_path=self.args.warmup_dir,
                                 save_path=self.args.search_dir)
+        # tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
 
     def train_warmup(self, n_epoch=200, save_path='./models/warmup'):
+        print('Warmup', n_epoch, 'epochs')
         self.net.train()
         for epoch in range(n_epoch):
             print('epoch: ', epoch + 1)
@@ -117,12 +118,13 @@ class DcpsLearner(AbstractLearner):
             self.recoder.update(epoch)
             self.lr_scheduler_warmup.step()
             if (epoch + 1) % 10 == 0:
-                self.save_model(os.path.join(save_path, 'model_'+str(epoch+1)+'.pth'))
+                self.save_model(os.path.join(save_path, 'model_' + str(epoch + 1) + '.pth'))
                 self.test(tau=1.0)
                 self.net.train()
         print('Finished Warming-up')
 
     def train_search(self, n_epoch=100, load_path='./models/warmup', save_path='./models/search'):
+        print('Search', n_epoch, 'epochs')
         self.load_model(load_path)
         self.test(tau=1.0)
         tau = 10
@@ -138,8 +140,7 @@ class DcpsLearner(AbstractLearner):
                                'tau': tau})
 
             for i, data in enumerate(self.train_loader):
-                # tau = 10 - (10-0.1) / (total_iter-1) * current_iter
-                tau = 10 ** (1 - 2.0 * current_iter / (total_iter-1))
+                tau = 10 ** (1 - 2.0 * current_iter / (total_iter - 1))
                 current_iter += 1
 
                 # optimizing weights with training data
@@ -192,6 +193,7 @@ class DcpsLearner(AbstractLearner):
         # Done, 0. load the searched model and extract the prune info
         # Done, 1. define the slim network based on prune info
         # Done, 2. train and validate, and exploit the full learner
+        print('Train', n_epoch, 'epochs')
         self.load_model(load_path)
         dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
         channel_list = ResNetChannelList(self.args.teacher_net_index)
@@ -200,32 +202,14 @@ class DcpsLearner(AbstractLearner):
         data = next(iter(self.train_loader))
         inputs, labels = data[0].to(self.device), data[1].to(self.device)
         outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
-        print('=================')
-        print(tau)
-        for prob in prob_list:
-            for item in prob.tolist():
-                print('{0:.2f}'.format(item), end=' ')
-            print()
-        print('------------------')
-
-        for item in self.forward.named_parameters():
-            # if '0.0.bn0' in item[0] and 'bias' not in item[0]:
-            #     print(item)
-            if 'conv0.conv.weight' in item[0]:
-                print(item[1][:, 0, 0, 0])
-                print(item[1][:, 1, 2, 1])
+        display_info(flops_list, prob_list)
 
         channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
         # channel_list_prune = [16,
         #                       [[10, 12, 12], [7, 12], [11, 12]],
         #                       [[31, 25, 25], [19, 25], [32, 25]],
         #                       [[39, 43, 43], [61, 43], [41, 43]]]
-
         print(channel_list_prune)
-        # exit(1)
-        # channel_list_prune = [13, [[9, 13], [9, 13], [16, 13]], [[16, 25, 25], [27, 25], [16, 25]], [[54, 64, 64], [45, 64], [29, 64]]]
-        # teacher_net = ResNet20(n_classes=self.dataset.n_class)
-        # teacher = Distiller(self.dataset, teacher_net, self.device, self.args, model_path='./models/6884.pth')
 
         net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list_prune)
         full_learner = FullLearner(self.dataset, net, device=self.device, args=self.args, teacher=self.teacher)
@@ -236,9 +220,9 @@ class DcpsLearner(AbstractLearner):
 
     def test(self, tau=1.0):
         self.net.eval()
-        total_accuracy_sum = 0
-        total_loss_sum = 0
-        for i, data in enumerate(self.test_loader, 0):
+        total_accuracy_sum, total_loss_sum = 0, 0
+        flops_list, prob_list = [], []
+        for i, data in enumerate(self.test_loader):
             images, labels = data[0].to(self.device), data[1].to(self.device)
             outputs, prob_list, flops, flops_list = self.forward(images, tau=tau, noise=False)
             # todo: to be fixed
@@ -377,7 +361,7 @@ class DcpsLearner(AbstractLearner):
     #     return tau
 
 
-def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate=0.0001):
+def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate=0):
     import numpy as np
     prune_list = []
     idx = 0
@@ -388,7 +372,7 @@ def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate=0.0001):
     chn_output_prune = int(np.round(
         min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
     ))
-    chn_output_prune += int(np.ceil(expand_rate*(chn_output_full-chn_output_prune)))
+    chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
     prune_list.append(chn_output_prune)
     chn_input_full = chn_output_full
     idx += 1
@@ -402,7 +386,7 @@ def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate=0.0001):
                 chn_output_prune = int(np.round(
                     min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
                 ))
-                chn_output_prune += int(np.ceil(expand_rate*(chn_output_full-chn_output_prune)))
+                chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
                 block_prune_list.append(chn_output_prune)
                 chn_input_full = chn_output_full
                 idx += 1

@@ -82,9 +82,6 @@ class CIFAR10Search(VisionDataset):
 
         self._load_meta()
 
-        print('')
-        print(train)
-
         if train:
             assert self.search_split < len(self.data), 'number of training samples should be less than the total number'
             self.randperm = torch.randperm(len(self.data))

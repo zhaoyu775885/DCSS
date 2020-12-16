@@ -25,8 +25,7 @@ class Cifar():
         cifar_dataset = dataset_fn(root=self.data_dir, train=is_train,
                                    transform=train_transform if is_train else valid_transform)
 
-        print('---------')
-        print(len(cifar_dataset))
+        print('train' if is_train else 'valid', 'samples: ', len(cifar_dataset))
 
         if valid:
             # todo: redundancy
