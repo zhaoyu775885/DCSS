@@ -53,17 +53,17 @@ class DcpsLearner(AbstractLearner):
         return optim.Adam(gates, lr=self.init_lr * 0.1)
 
     def _setup_lr_scheduler_warmup(self):
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_train(self):
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_search(self):
         # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_search, T_max=self.args.num_epoch)
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
 
     def metrics(self, outputs, labels, flops=None, prob_list=None):
         _, predicted = torch.max(outputs, 1)
@@ -86,11 +86,11 @@ class DcpsLearner(AbstractLearner):
         return accuracy, loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
-        tau = self.train_search(n_epoch=self.args.num_epoch_search,
-                                load_path=self.args.warmup_dir,
-                                save_path=self.args.search_dir)
-        # tau = 0.1
+        # self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        # tau = self.train_search(n_epoch=self.args.num_epoch_search,
+        #                         load_path=self.args.warmup_dir,
+        #                         save_path=self.args.search_dir)
+        tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
@@ -216,7 +216,7 @@ class DcpsLearner(AbstractLearner):
         print(channel_list_prune)
         del data, inputs, labels, outputs, prob_list, flops, flops_list
 
-        net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list)
+        net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list_prune)
         full_learner = FullLearner(self.dataset, net, device=self.device, args=self.args, teacher=self.teacher)
         print('FLOPs:', full_learner.cnt_flops())
         full_learner.train(n_epoch=n_epoch, save_path=save_path)
