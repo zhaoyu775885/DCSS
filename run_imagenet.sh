@@ -11,10 +11,12 @@ DATA_PATH='/home/zhaoyu/Data/Imagenet/ILSVRC2012'
 # network model type and index
 NET='resnet'
 NET_INDEX=18
+# NET_INDEX=50
 
 # training parameters
 NUM_EPOCH=120
 BATCH_SIZE=256
+# BATCH_SIZE=128
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9

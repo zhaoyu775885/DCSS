@@ -57,12 +57,13 @@ class DcpsLearner(AbstractLearner):
         return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_train(self):
-        # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_train, T_max=self.args.num_epoch)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
         return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_search(self):
         # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_search, T_max=self.args.num_epoch)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_search, milestones=[30, 50], gamma=0.1)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
 
     def metrics(self, outputs, labels, flops=None, prob_list=None):
         _, predicted = torch.max(outputs, 1)
@@ -164,10 +165,13 @@ class DcpsLearner(AbstractLearner):
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'loss_f': loss_with_flops,
                                                        'accuracy': accuracy})
                 if (i + 1) % 100 == 0:
+                    # todo: to be deleted
+                    """
                     self.net.eval()
                     inputs, labels = data[2].to(self.device), data[3].to(self.device)
                     outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
                     accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
+                    """
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1,
@@ -196,7 +200,7 @@ class DcpsLearner(AbstractLearner):
         print('Train', n_epoch, 'epochs')
         self.load_model(load_path)
         dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
-        channel_list = ResNetChannelList(self.args.teacher_net_index)
+        channel_list = ResNetChannelList(self.args.net_index)
 
         self.net.eval()
         data = next(iter(self.train_loader))
@@ -204,14 +208,15 @@ class DcpsLearner(AbstractLearner):
         outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
         display_info(flops_list, prob_list)
 
-        channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
+        channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg, expand_rate=0.0)
         # channel_list_prune = [16,
         #                       [[10, 12, 12], [7, 12], [11, 12]],
         #                       [[31, 25, 25], [19, 25], [32, 25]],
         #                       [[39, 43, 43], [61, 43], [41, 43]]]
         print(channel_list_prune)
+        del data, inputs, labels, outputs, prob_list, flops, flops_list
 
-        net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list_prune)
+        net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list)
         full_learner = FullLearner(self.dataset, net, device=self.device, args=self.args, teacher=self.teacher)
         print('FLOPs:', full_learner.cnt_flops())
         full_learner.train(n_epoch=n_epoch, save_path=save_path)
@@ -222,13 +227,14 @@ class DcpsLearner(AbstractLearner):
         self.net.eval()
         total_accuracy_sum, total_loss_sum = 0, 0
         flops_list, prob_list = [], []
-        for i, data in enumerate(self.test_loader):
-            images, labels = data[0].to(self.device), data[1].to(self.device)
-            outputs, prob_list, flops, flops_list = self.forward(images, tau=tau, noise=False)
-            # todo: to be fixed
-            accuracy, loss, _ = self.metrics(outputs, labels, flops)
-            total_accuracy_sum += accuracy
-            total_loss_sum += loss.item()
+        with torch.no_grad():
+            for i, data in enumerate(self.test_loader):
+                images, labels = data[0].to(self.device), data[1].to(self.device)
+                outputs, prob_list, flops, flops_list = self.forward(images, tau=tau, noise=False)
+                # todo: to be fixed
+                accuracy, loss, _ = self.metrics(outputs, labels, flops)
+                total_accuracy_sum += accuracy
+                total_loss_sum += loss.item()
         avg_loss = total_loss_sum / len(self.test_loader)
         avg_acc = total_accuracy_sum / len(self.test_loader)
         print('Validation:\naccuracy={0:.2f}%, loss={1:.3f}\n'.format(avg_acc * 100, avg_loss))
@@ -361,7 +367,7 @@ class DcpsLearner(AbstractLearner):
     #     return tau
 
 
-def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate=0):
+def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float=0):
     import numpy as np
     prune_list = []
     idx = 0
@@ -382,7 +388,7 @@ def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate=0):
             block_prune_list = []
             for chn_output_full in block:
                 conv = DNAS.Conv2d(chn_input_full, chn_output_full, 1, 1, 1, False, dcfg=dcfg)
-                print(prob_list[idx], conv.out_plane_list, torch.dot(prob_list[idx], conv.out_plane_list).item())
+                print(idx, prob_list[idx], conv.out_plane_list, torch.dot(prob_list[idx], conv.out_plane_list).item())
                 chn_output_prune = int(np.round(
                     min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
                 ))
