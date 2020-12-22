@@ -83,20 +83,23 @@ class FullSRLearner(AbstractLearner):
         # torch.set_grad_enabled(False)
         psnrs = list()
         ssims = list()
-        for ii, data in enumerate(self.test_loader):
-            lr, hr = [x.to(self.device) for x in data]
-            sr = self.net(lr)
-            sr = torch.clamp(sr, 0, 1)
-            sr = sr.cpu().detach().numpy() * 255
-            hr = hr.cpu().detach().numpy() * 255
-            sr = np.transpose(sr.squeeze(), (1, 2, 0))
-            hr = np.transpose(hr.squeeze(), (1, 2, 0))
-            sr = sr.astype(np.uint8)
-            hr = hr.astype(np.uint8)
-            psnr = compare_psnr(hr, sr, data_range=255)
-            ssim = compare_ssim(hr, sr, data_range=255, multichannel=True)
-            psnrs.append(psnr)
-            ssims.append(ssim)
+        with torch.no_grad():
+            for ii, data in enumerate(self.test_loader):
+                lr, hr = [x.to(self.device) for x in data]
+                sr = self.net(lr)
+                if ii == 0:
+                    print(lr[0, :, 3, 3], hr[0, :, 3, 3], sr[0, :, 3, 3])
+                sr = torch.clamp(sr, 0, 1)
+                sr = sr.cpu().detach().numpy() * 255
+                hr = hr.cpu().detach().numpy() * 255
+                sr = np.transpose(sr.squeeze(), (1, 2, 0))
+                hr = np.transpose(hr.squeeze(), (1, 2, 0))
+                sr = sr.astype(np.uint8)
+                hr = hr.astype(np.uint8)
+                psnr = compare_psnr(hr, sr, data_range=255)
+                ssim = compare_ssim(hr, sr, data_range=255, multichannel=True)
+                psnrs.append(psnr)
+                ssims.append(ssim)
         print('PSNR= {0:.4f}, SSIM= {1:.4f}'.format(np.mean(psnrs), np.mean(ssims)))
         # self.net.train()
         # torch.set_grad_enabled(True)

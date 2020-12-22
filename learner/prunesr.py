@@ -63,11 +63,12 @@ class DcpsSRLearner(AbstractLearner):
 
     def metrics(self, pred, gt, flops=None):
         loss = self.loss_fn(pred, gt)
+
         loss_with_flops = loss + self.args.weight_flops * torch.log(flops)
         return loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        # self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
         tau = self.train_search(n_epoch=self.args.num_epoch_search,
                                 load_path=self.args.warmup_dir,
                                 save_path=self.args.search_dir)
@@ -85,8 +86,9 @@ class DcpsSRLearner(AbstractLearner):
 
             for i, data in enumerate(self.train_loader):
                 lr, hr = data[0].to(self.device), data[1].to(self.device)
+
                 predict, prob_list, flops, flops_list = self.forward(lr, tau=1.0, noise=False)
-                loss, loss_with_flops = self.metrics(predict, hr)
+                loss, loss_with_flops = self.metrics(predict, hr, flops)
                 self.recoder.add_info(hr.size(0), {'loss': loss})
                 self.opt_warmup.zero_grad()
                 loss.backward()
@@ -96,7 +98,7 @@ class DcpsSRLearner(AbstractLearner):
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1, ': lr={0:.1e} | loss={1:6.4f} | speed={2} pic/s'.format(
-                        self.opt.param_groups[0]['lr'], loss, speed))
+                        self.opt_warmup.param_groups[0]['lr'], loss, speed))
                     time_prev = timer()
             self.recoder.update(epoch)
             self.lr_scheduler_warmup.step()
@@ -128,7 +130,7 @@ class DcpsSRLearner(AbstractLearner):
                 lr, hr = data[0].to(self.device), data[1].to(self.device)
                 self.net.train()
                 predict, prob_list, flops, flops_list = self.forward(lr, tau=1.0, noise=True)
-                loss, loss_with_flops = self.metrics(predict, hr)
+                loss, loss_with_flops = self.metrics(predict, hr, flops)
                 self.opt_train.zero_grad()
                 loss.backward()
                 self.opt_train.step()
@@ -137,7 +139,7 @@ class DcpsSRLearner(AbstractLearner):
                 lr, hr = data[2].to(self.device), data[3].to(self.device)
                 self.net.eval()
                 predict, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
-                loss, loss_with_flops = self.metrics(predict, hr)
+                loss, loss_with_flops = self.metrics(predict, hr, flops)
                 self.opt_search.zero_grad()
                 loss_with_flops.backward()
                 self.opt_search.step()
@@ -145,11 +147,11 @@ class DcpsSRLearner(AbstractLearner):
                 self.recoder.add_info(hr.size(0), {'loss': loss, 'loss_f': loss_with_flops})
 
                 if (i + 1) % 100 == 0:
-                    self.net.eval()
-                    lr, hr = data[2].to(self.device), data[3].to(self.device)
-                    self.net.eval()
-                    predict, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
-                    loss, loss_with_flops = self.metrics(predict, hr)
+                    # self.net.eval()
+                    # lr, hr = data[2].to(self.device), data[3].to(self.device)
+                    # self.net.eval()
+                    # predict, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
+                    # loss, loss_with_flops = self.metrics(predict, hr)
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1,
@@ -199,20 +201,21 @@ class DcpsSRLearner(AbstractLearner):
         self.net.eval()
         psnrs, ssims = [], []
         flops_list, prob_list = [], []
-        for i, data in enumerate(self.test_loader, 0):
-            lr, hr = data[0].to(self.device), data[1].to(self.device)
-            sr, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
-            sr = torch.clamp(sr, 0, 1)
-            sr = sr.cpu().detach().numpy() * 255
-            hr = hr.cpu().detach().numpy() * 255
-            sr = np.transpose(sr.squeeze(), (1, 2, 0))
-            hr = np.transpose(hr.squeeze(), (1, 2, 0))
-            sr = sr.astype(np.uint8)
-            hr = hr.astype(np.uint8)
-            psnr = compare_psnr(hr, sr, data_range=255)
-            ssim = compare_ssim(hr, sr, data_range=255, multichannel=True)
-            psnrs.append(psnr)
-            ssims.append(ssim)
+        with torch.no_grad():
+            for i, data in enumerate(self.test_loader, 0):
+                lr, hr = data[0].to(self.device), data[1].to(self.device)
+                sr, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
+                sr = torch.clamp(sr, 0, 1)
+                sr = sr.cpu().detach().numpy() * 255
+                hr = hr.cpu().detach().numpy() * 255
+                sr = np.transpose(sr.squeeze(), (1, 2, 0))
+                hr = np.transpose(hr.squeeze(), (1, 2, 0))
+                sr = sr.astype(np.uint8)
+                hr = hr.astype(np.uint8)
+                psnr = compare_psnr(hr, sr, data_range=255)
+                ssim = compare_ssim(hr, sr, data_range=255, multichannel=True)
+                psnrs.append(psnr)
+                ssims.append(ssim)
         print('PSNR= {0:.4f}, SSIM= {1:.4f}'.format(np.mean(psnrs), np.mean(ssims)))
         display_info(flops_list, prob_list)
 

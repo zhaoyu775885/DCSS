@@ -80,11 +80,13 @@ class EDSRGated(nn.Module):
         self.conv0 = dnas.Conv2d(num_colors, channel_list[0], 3, stride=1, padding=1, bias=False, dcfg=self.dcfg)
         self.dcfg.reuse_gate = self.conv0.gate
 
-        self.blocks = list()
+        blocks = list()
         in_plane = channel_list[0]
         for i in range(num_blocks):
-            self.blocks.append(EDSRBlockGated(in_plane, channel_list[i + 1], res_scale, self.dcfg))
+            blocks.append(EDSRBlockGated(in_plane, channel_list[i + 1], self.dcfg, res_scale))
             in_plane = channel_list[i + 1][-1]
+        self.blocks = nn.Sequential(*blocks)
+
         self.tail = Upsampler(scale, in_plane)
         self.output = nn.Conv2d(in_channels=in_plane, out_channels=num_colors, kernel_size=3, stride=1, padding=1,
                                 bias=False)
@@ -222,6 +224,13 @@ def EDSRChannelList():
                 [64, 64], [64, 64], [64, 64], [64, 64],
                 64]
     return channel_list
+
+
+def EDSRDcps(num_blocks, num_colors=3, scale=1, res_scale=0.1):
+    dcfg = dnas.DcpConfig(n_param=8, split_type=dnas.TYPE_A, reuse_gate=None)
+    chn_list = EDSRChannelList()
+    return EDSRGated(num_blocks=num_blocks, channel_list=chn_list, dcfg=dcfg, num_colors=num_colors,
+                     scale=scale, res_scale=res_scale)
 
 
 if __name__ == '__main__':

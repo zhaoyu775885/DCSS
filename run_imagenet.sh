@@ -10,13 +10,11 @@ DATA_PATH='/home/zhaoyu/Data/Imagenet/ILSVRC2012'
 
 # network model type and index
 NET='resnet'
-NET_INDEX=18
-# NET_INDEX=50
+NET_INDEX=50
 
 # training parameters
 NUM_EPOCH=120
-BATCH_SIZE=256
-# BATCH_SIZE=128
+BATCH_SIZE=64
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9
@@ -61,7 +59,7 @@ if [ ${DST_FLAG} == ${TRUE} ]; then
 fi
 
 # prune switch
-PRUNE_FLAG=${TRUE}
+PRUNE_FLAG=${FALSE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim

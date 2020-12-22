@@ -107,6 +107,7 @@ class Conv2d(nn.Module):
 
     def forward(self, x, tau=1, noise=False, reuse_prob=None, p_in=None):
         y = self.conv(x)
+
         prob = self.__gumbel_softmax(tau, noise) if reuse_prob is None else reuse_prob
         rmask = torch.sum(self.mask * prob, dim=1)
         flops = self.__cnt_flops(p_in, prob, y.shape[2:])

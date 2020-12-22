@@ -78,6 +78,7 @@ class FullLearner(AbstractLearner):
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1, ': lr={0:.1e} | acc={1:5.2f} | loss={2:5.2f} | speed={3} pic/s'.format(
                         self.opt.param_groups[0]['lr'], accuracy * 100, loss, speed))
+                    self.test()
                     time_prev = timer()
             self.recoder.update(epoch)
             self.lr_scheduler.step()
@@ -91,12 +92,13 @@ class FullLearner(AbstractLearner):
     def test(self):
         self.net.eval()
         total_accuracy_sum, total_loss_sum = 0, 0
-        for i, data in enumerate(self.test_loader, 0):
-            inputs, labels = data[0].to(self.device), data[1].to(self.device)
-            logits = self.forward(inputs)
-            accuracy, loss = self.metrics(logits, labels)
-            total_accuracy_sum += accuracy
-            total_loss_sum += loss.item()
+        with torch.no_grad():
+            for i, data in enumerate(self.test_loader, 0):
+                inputs, labels = data[0].to(self.device), data[1].to(self.device)
+                logits = self.forward(inputs)
+                accuracy, loss = self.metrics(logits, labels)
+                total_accuracy_sum += accuracy
+                total_loss_sum += loss.item()
         avg_loss = total_loss_sum / len(self.test_loader)
         avg_acc = total_accuracy_sum / len(self.test_loader)
         print('Validation:\naccuracy={0:.2f}%, loss={1:.3f}\n'.format(avg_acc * 100, avg_loss))

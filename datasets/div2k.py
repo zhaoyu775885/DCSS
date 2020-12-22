@@ -13,7 +13,7 @@ class DIV2K():
         self.enlarge = enlarge
         self.length = length
         self.patch_size_train = 48
-        self.patch_size_test = 256
+        self.patch_size_test = 0
 
     def build_dataloader(self, batch_size, is_train=True, valid=False, search=False):
         if is_train:
