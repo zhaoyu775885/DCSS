@@ -238,16 +238,17 @@ def get_prune_list(channel_list_full, prob_list, dcfg, expand_rate=0):
     for block in channel_list_full[1:-1]:
         block_list = []
         for chn_output_full in block:
-            block_prune_list = []
+            # block_prune_list = []
             conv = dnas_conv(chn_input_full, chn_output_full)
             # print(prob_list[idx], conv.out_plane_list, torch.dot(prob_list[idx], conv.out_plane_list).item())
             chn_output_prune = int(np.round(
                 min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
             ))
             chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
-            block_prune_list.append(chn_output_prune)
+            # block_prune_list.append(chn_output_prune)
+            block_list.append(chn_output_prune)
             chn_input_full = chn_output_full
             idx += 1
-            block_list.append(block_prune_list)
+
         prune_list.append(block_list)
     return prune_list

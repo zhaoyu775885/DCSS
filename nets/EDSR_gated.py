@@ -11,6 +11,7 @@ import torch.nn as nn
 import math
 import utils.DNAS as dnas
 from nets.sr_utils import MeanShift
+from nets.resnet_lite import conv_flops
 from thop import profile
 
 
@@ -35,7 +36,7 @@ class Upsampler(nn.Sequential):
 
 
 class EDSRBlockGated(nn.Module):
-    def __init__(self, in_plane, out_planes, dcfg, res_scale=1):
+    def __init__(self, in_plane, out_planes, dcfg, res_scale: float = 1):
         super(EDSRBlockGated, self).__init__()
         assert len(out_planes) == 2
         assert out_planes[-1] == in_plane
@@ -47,19 +48,22 @@ class EDSRBlockGated(nn.Module):
         self.conv1 = dnas.Conv2d(in_plane, out_planes[0], kernel_size=3, stride=1, padding=1, bias=False,
                                  dcfg=dcfg.copy())
         self.act2 = nn.ReLU(inplace=True)
-        self.conv2 = dnas.Conv2d(out_planes[0], in_plane, kernel_size=3, stride=1, padding=1, bias=False, dcfg=dcfg)
+        self.conv2 = dnas.Conv2d(out_planes[0], in_plane, kernel_size=3, stride=1, padding=1, bias=False,
+                                 dcfg=dcfg)
         self.res_scale = res_scale
 
     def forward(self, x, tau=1, noise=False, reuse_prob=None):
         prob = reuse_prob
 
-        res, rmask_1, p1, conv1_flops = self.conv1(x, tau, noise, p_in=prob)
-        res = self.act1(dnas.weighted_feature(res, rmask_1))
+        res = self.act1(x)
+        res, rmask_1, p1, conv1_flops = self.conv1(res, tau, noise, p_in=prob)
+        res = dnas.weighted_feature(res, rmask_1)
         prob_list = [p1]
         flops_list = [conv1_flops]
 
+        res = self.act2(res)
         res, rmask_2, p2, conv2_flops = self.conv2(res, tau, noise, reuse_prob=prob, p_in=p1)
-        res = self.act2(dnas.weighted_feature(res, rmask_2))
+        res = dnas.weighted_feature(res, rmask_2)
         prob_list.append(prob)
         flops_list.append(conv2_flops)
 
@@ -111,7 +115,7 @@ class EDSRGated(nn.Module):
 
 
 class EDSRBlockLite(nn.Module):
-    def __init__(self, in_plane, out_planes, res_scale=1):
+    def __init__(self, in_plane, out_planes, res_scale: float = 1):
         super(EDSRBlockLite, self).__init__()
         assert len(out_planes) == 2
         assert out_planes[-1] == in_plane
@@ -120,12 +124,20 @@ class EDSRBlockLite(nn.Module):
         self.act2 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(out_planes[0], in_plane, kernel_size=3, stride=1, padding=1, bias=False)
 
-        m_body = [self.act1, self.conv1, self.act2, self.conv2]
-        self.body = nn.Sequential(*m_body)
         self.res_scale = res_scale
 
+    def cnt_flops(self, x):
+        flops = 0
+        res = x
+        conv1 = self.conv1(self.act1(res))
+        flops += conv_flops(res, conv1, 3)
+        conv2 = self.conv2(self.act2(conv1))
+        flops += conv_flops(conv1, conv2, 3)
+        return flops
+
     def forward(self, x):
-        res = self.body(x).mul(self.res_scale)
+        res = self.conv1(self.act1(x))
+        res = self.conv2(self.act2(res)).mul(self.res_scale)
         res += x
         return res
 
@@ -143,21 +155,36 @@ class EDSRLite(nn.Module):
         for i in range(num_blocks):
             blocks.append(EDSRBlockLite(in_plane, channel_list[i + 1], res_scale))
             in_plane = channel_list[i + 1][-1]
-        self.blocks = nn.Sequential(*blocks)
+        self.blocks = nn.ModuleList(blocks)
 
-        m_tail = list()
-        m_tail.append(Upsampler(scale, in_plane))
-        m_tail.append(
-            nn.Conv2d(in_channels=in_plane, out_channels=num_colors, kernel_size=3, stride=1, padding=1, bias=False))
+        self.upsampler = Upsampler(scale, in_plane)
+        self.tail = nn.Conv2d(in_channels=in_plane, out_channels=num_colors, kernel_size=3, stride=1,
+                              padding=1, bias=False)
 
-        self.tail = nn.Sequential(*m_tail)
+    def cnt_flops(self, x):
+        flops = 0
+        x = self.sub_mean(x)
+        conv0 = self.conv0(x)
+        flops += conv_flops(x, conv0, 3)
+        x = conv0
+        res = conv0
+        for block in self.blocks:
+            flops += block.cnt_flops(res)
+            res = block(res)
+        res += x
+        x = self.upsampler(res)
+        y = self.tail(x)
+        return flops
 
     def forward(self, x):
         x = self.sub_mean(x)
         x = self.conv0(x)
-        res = self.blocks(x)
+        res = x
+        for block in self.blocks:
+            res = block(res)
         res += x
-        x = self.tail(res)
+        x = self.upsampler(res)
+        x = self.tail(x)
         x = self.add_mean(x)
         return x
 
@@ -218,11 +245,11 @@ class EDSR(nn.Module):
 
 def EDSRChannelList():
     channel_list = [64,
-                [64, 64], [64, 64], [64, 64], [64, 64],
-                [64, 64], [64, 64], [64, 64], [64, 64],
-                [64, 64], [64, 64], [64, 64], [64, 64],
-                [64, 64], [64, 64], [64, 64], [64, 64],
-                64]
+                    [64, 64], [64, 64], [64, 64], [64, 64],
+                    [64, 64], [64, 64], [64, 64], [64, 64],
+                    [64, 64], [64, 64], [64, 64], [64, 64],
+                    [64, 64], [64, 64], [64, 64], [64, 64],
+                    64]
     return channel_list
 
 
@@ -235,7 +262,7 @@ def EDSRDcps(num_blocks, num_colors=3, scale=1, res_scale=0.1):
 
 if __name__ == '__main__':
     net = EDSR(num_blocks=16, num_chls=64, num_colors=3, scale=2, res_scale=0.1)
-    x = torch.zeros([1, 3, 40, 40])
+    x = torch.zeros([1, 3, 48, 48])
     # y = net(x)
     # print(net)
     # exit(1)
@@ -247,8 +274,8 @@ if __name__ == '__main__':
     chn_list = EDSRChannelList()
     net_2 = EDSRLite(16, chn_list, num_colors=3, scale=2, res_scale=0.1)
     g = net_2(x)
-    # print(net_2)
     macs, params = profile(net_2, inputs=(x,))
-    print(macs, params)
-    print(g.shape)
-
+    flops = net_2.cnt_flops(x)
+    print(flops)
+    # print(macs, params)
+    # print(g.shape)

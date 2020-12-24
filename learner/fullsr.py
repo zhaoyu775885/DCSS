@@ -87,8 +87,6 @@ class FullSRLearner(AbstractLearner):
             for ii, data in enumerate(self.test_loader):
                 lr, hr = [x.to(self.device) for x in data]
                 sr = self.net(lr)
-                if ii == 0:
-                    print(lr[0, :, 3, 3], hr[0, :, 3, 3], sr[0, :, 3, 3])
                 sr = torch.clamp(sr, 0, 1)
                 sr = sr.cpu().detach().numpy() * 255
                 hr = hr.cpu().detach().numpy() * 255
