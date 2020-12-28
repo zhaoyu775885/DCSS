@@ -6,7 +6,7 @@ from nets.EDSR_gated import EDSR, EDSRDcps
 from learner.prunesr import DcpsSRLearner
 from learner.fullsr import FullSRLearner
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 # prepare for parallel training
 
 
@@ -41,7 +41,7 @@ def main():
     # learner.train(n_epoch=args.num_epoch, save_path='workdir/EDSR/full')
 
     if not args.prune_flag:
-        net = EDSR(num_blocks=16, num_chls=64, num_colors=3, scale=2, res_scale=0.1)
+        net = EDSR(num_blocks=16, num_chls=64, num_colors=3, scale=2, res_scale=1)
         learner = FullSRLearner(dataset, net, device, args)
         learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
         learner.load_model(args.full_dir)

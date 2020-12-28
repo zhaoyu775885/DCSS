@@ -44,7 +44,7 @@ class EDSRBlockGated(nn.Module):
         # self.dcfg = dcfg
         # self.dcfg_nonreuse = dcfg.copy()
 
-        self.act1 = nn.ReLU(inplace=True)
+        # self.act1 = nn.ReLU(inplace=True)
         self.conv1 = dnas.Conv2d(in_plane, out_planes[0], kernel_size=3, stride=1, padding=1, bias=False,
                                  dcfg=dcfg.copy())
         self.act2 = nn.ReLU(inplace=True)
@@ -55,7 +55,8 @@ class EDSRBlockGated(nn.Module):
     def forward(self, x, tau=1, noise=False, reuse_prob=None):
         prob = reuse_prob
 
-        res = self.act1(x)
+        res = x
+        # res = self.act1(x)
         res, rmask_1, p1, conv1_flops = self.conv1(res, tau, noise, p_in=prob)
         res = dnas.weighted_feature(res, rmask_1)
         prob_list = [p1]
@@ -119,7 +120,7 @@ class EDSRBlockLite(nn.Module):
         super(EDSRBlockLite, self).__init__()
         assert len(out_planes) == 2
         assert out_planes[-1] == in_plane
-        self.act1 = nn.ReLU(inplace=True)
+        # self.act1 = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(in_plane, out_planes[0], kernel_size=3, stride=1, padding=1, bias=False)
         self.act2 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(out_planes[0], in_plane, kernel_size=3, stride=1, padding=1, bias=False)
@@ -129,14 +130,14 @@ class EDSRBlockLite(nn.Module):
     def cnt_flops(self, x):
         flops = 0
         res = x
-        conv1 = self.conv1(self.act1(res))
+        conv1 = self.conv1(res)
         flops += conv_flops(res, conv1, 3)
         conv2 = self.conv2(self.act2(conv1))
         flops += conv_flops(conv1, conv2, 3)
         return flops
 
     def forward(self, x):
-        res = self.conv1(self.act1(x))
+        res = self.conv1(x)
         res = self.conv2(self.act2(res)).mul(self.res_scale)
         res += x
         return res
@@ -192,14 +193,15 @@ class EDSRLite(nn.Module):
 class ResBlock(nn.Module):
     def __init__(self, num_chls, res_scale=0.1):
         super(ResBlock, self).__init__()
-        self.act1 = nn.ReLU(inplace=True)
+        # self.act1 = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(in_channels=num_chls, out_channels=num_chls, kernel_size=3, stride=1, padding=1,
                                bias=False)
         self.act2 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(in_channels=num_chls, out_channels=num_chls, kernel_size=3, stride=1, padding=1,
                                bias=False)
 
-        m_body = [self.act1, self.conv1, self.act2, self.conv2]
+        # m_body = [self.act1, self.conv1, self.act2, self.conv2]
+        m_body = [self.conv1, self.act2, self.conv2]
         self.body = nn.Sequential(*m_body)
         self.res_scale = res_scale
 

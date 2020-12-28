@@ -14,7 +14,6 @@ export CUDA_VISIBLE_DEVICES='1'
 #python -u main_sr.py 2>&1 | tee ${LOG_FILE}
 
 
-
 # single image super resolution, SISR dataset
 DATASET='DIV2K'
 DATA_PATH='/home/zhaoyu/Data/DIV2K/'
@@ -24,10 +23,10 @@ NET='EDSR'
 
 # training parameters
 NUM_EPOCH=120
-BATCH_SIZE=64
+BATCH_SIZE=16
 BATCH_SIZE_TEST=1
-STD_BATCH_SIZE=64
-STD_INIT_LR=2e-3
+STD_BATCH_SIZE=16
+STD_INIT_LR=2e-4
 
 BASIC_ARGUMENTS="--dataset ${DATASET}
                  --data_path ${DATA_PATH}
@@ -49,15 +48,15 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # prune switch
-PRUNE_FLAG=${FALSE}
+PRUNE_FLAG=${TRUE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim
 	WARMUP_DIR=${WORKROOT}/${NET_DATASET}/warmup
 	SEARCH_DIR=${WORKROOT}/${NET_DATASET}/search
 	mkdir -p "${SLIM_DIR}" "${WARMUP_DIR}" "${SEARCH_DIR}"
-	WEIGHT_FLOPS=1
-	NUM_EPOCH_WARMUP=15
+	WEIGHT_FLOPS=0
+	NUM_EPOCH_WARMUP=20
 	NUM_EPOCH_SEARCH=20
 	PRUNE_ARGUMENTS+="--weight_flops ${WEIGHT_FLOPS}
 	                  --num_epoch_warmup ${NUM_EPOCH_WARMUP}

@@ -134,10 +134,10 @@ class ResNet(nn.Module):
 
 
 if __name__ == '__main__':
-    net = ResNet(20, 100)
-    x = torch.zeros([1, 3, 32, 32])
+    net = ResNet(50, 1000)
+    x = torch.zeros([1, 3, 224, 224])
     y = net(x)
     print(net)
 
-    # macs, params = profile(net, inputs=(x,))
-    # print(macs, params)
+    macs, params = profile(net, inputs=(x,))
+    print(macs, params)

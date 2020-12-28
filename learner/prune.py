@@ -53,17 +53,16 @@ class DcpsLearner(AbstractLearner):
         return optim.Adam(gates, lr=self.init_lr * 0.1)
 
     def _setup_lr_scheduler_warmup(self):
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_train(self):
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
 
     def _setup_lr_scheduler_search(self):
-        # return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt_search, T_max=self.args.num_epoch)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
+        # return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+        return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
 
     def metrics(self, outputs, labels, flops=None, prob_list=None):
         _, predicted = torch.max(outputs, 1)
@@ -239,7 +238,7 @@ class DcpsLearner(AbstractLearner):
         avg_acc = total_accuracy_sum / len(self.test_loader)
         print('Validation:\naccuracy={0:.2f}%, loss={1:.3f}\n'.format(avg_acc * 100, avg_loss))
         display_info(flops_list, prob_list)
-        # print('acc= {0:.2f}, loss={1:.3f}\n'.format(avg_acc * 100, avg_loss))
+        torch.cuda.empty_cache()
 
     # def debug(self, n_epoch=100, load_path='./models/warmup', save_path='./models/search'):
     #     self.load_model(load_path)

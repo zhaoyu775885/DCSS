@@ -23,6 +23,7 @@ class DcpsSRLearner(AbstractLearner):
         self.test_loader = self._build_dataloader(self.batch_size_test, is_train=False, search=True)
 
         self.init_lr = self.batch_size_train / self.args.std_batch_size * self.args.std_init_lr
+        print(self.init_lr)
 
         # setup optimizer
         self.opt_warmup = self._setup_optimizer_warmup()
@@ -69,9 +70,10 @@ class DcpsSRLearner(AbstractLearner):
 
     def train(self, n_epoch=250, save_path='./models/slim'):
         # self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
-        tau = self.train_search(n_epoch=self.args.num_epoch_search,
-                                load_path=self.args.warmup_dir,
-                                save_path=self.args.search_dir)
+        # tau = self.train_search(n_epoch=self.args.num_epoch_search,
+        #                         load_path=self.args.warmup_dir,
+        #                         save_path=self.args.search_dir)
+        tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
@@ -97,8 +99,9 @@ class DcpsSRLearner(AbstractLearner):
                 if (i + 1) % 100 == 0:
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
-                    print(i + 1, ': lr={0:.1e} | loss={1:6.4f} | speed={2} pic/s'.format(
-                        self.opt_warmup.param_groups[0]['lr'], loss, speed))
+                    print(i + 1,
+                          ': lr={0:.1e} | loss={1:5.3f} | loss_f={2:5.3f} | flops={3} | speed={4} pic/s'.format(
+                              self.opt_warmup.param_groups[0]['lr'], loss, loss_with_flops, flops, speed))
                     time_prev = timer()
             self.recoder.update(epoch)
             self.lr_scheduler_warmup.step()
@@ -186,8 +189,10 @@ class DcpsSRLearner(AbstractLearner):
         sr, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
         display_info(flops_list, prob_list)
 
-        chn_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
+        # chn_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
+        chn_list_prune = get_uniform_prune_list(channel_list, 0.8)
         print(chn_list_prune)
+        exit(1)
 
         net = EDSRLite(16, chn_list_prune, num_colors=3, scale=2, res_scale=0.1)
 
@@ -218,6 +223,7 @@ class DcpsSRLearner(AbstractLearner):
                 ssims.append(ssim)
         print('PSNR= {0:.4f}, SSIM= {1:.4f}'.format(np.mean(psnrs), np.mean(ssims)))
         display_info(flops_list, prob_list)
+        torch.cuda.empty_cache()
 
 
 def get_prune_list(channel_list_full, prob_list, dcfg, expand_rate=0):
@@ -250,5 +256,15 @@ def get_prune_list(channel_list_full, prob_list, dcfg, expand_rate=0):
             chn_input_full = chn_output_full
             idx += 1
 
+        prune_list.append(block_list)
+    return prune_list
+
+
+def get_uniform_prune_list(channel_list_full, prune_ratio):
+    prune_list = [np.round(int(channel_list_full[0]*prune_ratio))]
+    for block in channel_list_full[1:-1]:
+        block_list = []
+        for chn_output_full in block:
+            block_list.append(np.round(int(chn_output_full*prune_ratio)))
         prune_list.append(block_list)
     return prune_list

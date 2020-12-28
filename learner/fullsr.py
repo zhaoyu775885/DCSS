@@ -29,7 +29,7 @@ class FullSRLearner(AbstractLearner):
 
     def _setup_lr_scheduler(self):
         return torch.optim.lr_scheduler.MultiStepLR(self.opt,
-                                                    milestones=[10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110],
+                                                    milestones=[25, 50, 75, 100],
                                                     gamma=0.5)
 
     def metrics(self, predict, truth):
@@ -83,6 +83,7 @@ class FullSRLearner(AbstractLearner):
         # torch.set_grad_enabled(False)
         psnrs = list()
         ssims = list()
+        # shave = 8
         with torch.no_grad():
             for ii, data in enumerate(self.test_loader):
                 lr, hr = [x.to(self.device) for x in data]
@@ -92,6 +93,9 @@ class FullSRLearner(AbstractLearner):
                 hr = hr.cpu().detach().numpy() * 255
                 sr = np.transpose(sr.squeeze(), (1, 2, 0))
                 hr = np.transpose(hr.squeeze(), (1, 2, 0))
+                # ignore pixels near the edge
+                # sr = sr[shave:-shave, shave:-shave, :]
+                # hr = hr[shave:-shave, shave:-shave, :]
                 sr = sr.astype(np.uint8)
                 hr = hr.astype(np.uint8)
                 psnr = compare_psnr(hr, sr, data_range=255)
@@ -99,5 +103,7 @@ class FullSRLearner(AbstractLearner):
                 psnrs.append(psnr)
                 ssims.append(ssim)
         print('PSNR= {0:.4f}, SSIM= {1:.4f}'.format(np.mean(psnrs), np.mean(ssims)))
+        torch.cuda.empty_cache()
         # self.net.train()
         # torch.set_grad_enabled(True)
+

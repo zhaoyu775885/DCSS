@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from timeit import default_timer as timer
 from learner.abstract_learner import AbstractLearner
+from torch.nn.parallel import DistributedDataParallel as DDP
 import os
 
 
@@ -19,6 +20,7 @@ class FullLearner(AbstractLearner):
         self.opt = self._setup_optimizer()
         self.lr_scheduler = self._setup_lr_scheduler()
         self.teacher = teacher
+        # self.forward = nn.DataParallel(self.forward, device_ids=[0, 1])
 
     def _setup_loss_fn(self):
         return nn.CrossEntropyLoss()
@@ -78,7 +80,6 @@ class FullLearner(AbstractLearner):
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1, ': lr={0:.1e} | acc={1:5.2f} | loss={2:5.2f} | speed={3} pic/s'.format(
                         self.opt.param_groups[0]['lr'], accuracy * 100, loss, speed))
-                    self.test()
                     time_prev = timer()
             self.recoder.update(epoch)
             self.lr_scheduler.step()
@@ -102,3 +103,4 @@ class FullLearner(AbstractLearner):
         avg_loss = total_loss_sum / len(self.test_loader)
         avg_acc = total_accuracy_sum / len(self.test_loader)
         print('Validation:\naccuracy={0:.2f}%, loss={1:.3f}\n'.format(avg_acc * 100, avg_loss))
+        torch.cuda.empty_cache()

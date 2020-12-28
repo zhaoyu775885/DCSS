@@ -2,7 +2,7 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-export CUDA_VISIBLE_DEVICES='1'
+export CUDA_VISIBLE_DEVICES='0'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='imagenet'
@@ -68,7 +68,7 @@ if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	mkdir -p ${SLIM_DIR} ${WARMUP_DIR} ${SEARCH_DIR}
 	WEIGHT_FLOPS=2.0
 	NUM_EPOCH_WARMUP=50
-	NUM_EPOCH_SEARCH=60
+	NUM_EPOCH_SEARCH=50
 	PRUNE_ARGUMENTS+="--weight_flops ${WEIGHT_FLOPS}
 	                  --num_epoch_warmup ${NUM_EPOCH_WARMUP}
 	                  --num_epoch_search ${NUM_EPOCH_SEARCH}

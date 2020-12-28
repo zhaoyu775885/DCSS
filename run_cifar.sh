@@ -2,7 +2,7 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-export CUDA_VISIBLE_DEVICES='1'
+export CUDA_VISIBLE_DEVICES='0, 1'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='cifar100'
@@ -10,7 +10,7 @@ DATA_PATH='/home/zhaoyu/Data/cifar100'
 
 # network model type and index
 NET='resnet'
-NET_INDEX=32
+NET_INDEX=20
 
 # training parameters
 NUM_EPOCH=600
@@ -42,7 +42,7 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # distillation switch
-DST_FLAG=${TRUE}
+DST_FLAG=${FALSE}
 DST_ARGUMENTS=" --dst_flag ${DST_FLAG} "
 if [ ${DST_FLAG} == ${TRUE} ]; then
 	TEACHER_NET='resnet'
@@ -60,7 +60,7 @@ fi
 BASIC_ARGUMENTS+=${DST_ARGUMENTS}
 
 # prune switch
-PRUNE_FLAG=${TRUE}
+PRUNE_FLAG=${FALSE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim
