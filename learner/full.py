@@ -20,7 +20,7 @@ class FullLearner(AbstractLearner):
         self.opt = self._setup_optimizer()
         self.lr_scheduler = self._setup_lr_scheduler()
         self.teacher = teacher
-        # self.forward = nn.DataParallel(self.forward, device_ids=[0, 1])
+        self.forward = nn.DataParallel(self.forward, device_ids=[0, 1])
 
     def _setup_loss_fn(self):
         return nn.CrossEntropyLoss()
