@@ -65,15 +65,23 @@ class DcpsSRLearner(AbstractLearner):
     def metrics(self, pred, gt, flops=None):
         loss = self.loss_fn(pred, gt)
 
-        loss_with_flops = loss + self.args.weight_flops * torch.log(flops)
+        tolerance = 0.01
+        target_flops = 500000000
+        coef = self.args.weight_flops
+        if flops < (1 - tolerance) * target_flops:
+            coef = -0.001
+        elif flops > (1 + tolerance) * target_flops:
+            coef = 0.001
+
+        loss_with_flops = loss + coef * torch.log(flops)
         return loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
         # self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
-        # tau = self.train_search(n_epoch=self.args.num_epoch_search,
-        #                         load_path=self.args.warmup_dir,
-        #                         save_path=self.args.search_dir)
-        tau = 0.1
+        tau = self.train_search(n_epoch=self.args.num_epoch_search,
+                                load_path=self.args.warmup_dir,
+                                save_path=self.args.search_dir)
+        # tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
@@ -180,7 +188,7 @@ class DcpsSRLearner(AbstractLearner):
         # Done, 2. train and validate, and exploit the full learner
         print('Train', n_epoch, 'epochs')
         self.load_model(load_path)
-        dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
+        dcfg = DNAS.DcpConfig(n_param=32, split_type=DNAS.TYPE_A, reuse_gate=None)
         channel_list = EDSRChannelList()
 
         self.net.eval()
@@ -189,12 +197,11 @@ class DcpsSRLearner(AbstractLearner):
         sr, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
         display_info(flops_list, prob_list)
 
-        # chn_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
-        chn_list_prune = get_uniform_prune_list(channel_list, 0.8)
+        chn_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
+        # chn_list_prune = get_uniform_prune_list(channel_list, 0.72)
         print(chn_list_prune)
-        exit(1)
 
-        net = EDSRLite(16, chn_list_prune, num_colors=3, scale=2, res_scale=0.1)
+        net = EDSRLite(16, chn_list_prune, num_colors=3, scale=2, res_scale=1)
 
         full_learner = FullSRLearner(self.dataset, net, device=self.device, args=self.args)
         print('FLOPs:', full_learner.cnt_flops())
