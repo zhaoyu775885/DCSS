@@ -31,9 +31,7 @@ class FullLearner(AbstractLearner):
                          momentum=self.args.momentum, weight_decay=self.args.weight_decay)
 
     def _setup_lr_scheduler(self):
-        #return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=self.args.num_epoch)
-        # return torch.optim.lr_scheduler.MultiStepLR(self.opt, milestones=[200, 300, 400], gamma=0.1)
-        return torch.optim.lr_scheduler.MultiStepLR(self.opt, milestones=[30, 60, 90], gamma=0.1)
+        return torch.optim.lr_scheduler.CosineAnnealingLR(self.opt, T_max=self.args.num_epoch)
 
     def metrics(self, logits, labels, trg_logits=None):
         _, predicted = torch.max(logits, 1)

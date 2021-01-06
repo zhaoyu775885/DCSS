@@ -62,10 +62,7 @@ def main():
         teacher = Distiller(dataset, teacher_net, device, args, model_path=args.teacher_dir)
 
     if not args.prune_flag:
-        if args.dataset == 'imagenet' and args.net_index == 50:
-            net = resnet50()
-        else:
-            net = ResNet(args.net_index, n_class)
+        net = ResNet(args.net_index, n_class)
         learner = FullLearner(dataset, net, device, args, teacher=teacher)
         learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
         learner.load_model(args.full_dir)
