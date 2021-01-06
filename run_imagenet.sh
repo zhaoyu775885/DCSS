@@ -2,7 +2,7 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-export CUDA_VISIBLE_DEVICES='0, 1'
+export CUDA_VISIBLE_DEVICES='0'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='imagenet'
@@ -14,7 +14,7 @@ NET_INDEX=50
 
 # training parameters
 NUM_EPOCH=120
-BATCH_SIZE=64
+BATCH_SIZE=128
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9
