@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from learner.full import FullLearner
 
@@ -20,7 +21,8 @@ class Distiller(FullLearner):
         return nn.KLDivLoss(reduction='batchmean')
 
     def infer(self, images):
-        return self.net(images).detach()
+        with torch.no_grad():
+            return self.net(images).detach()
 
     def kd_loss(self, std_logits, trg_logits):
         t_dst = self.args.dst_temperature
