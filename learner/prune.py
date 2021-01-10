@@ -97,10 +97,10 @@ class DcpsLearner(AbstractLearner):
         tau = self.train_search(n_epoch=self.args.num_epoch_search,
                                 load_path=self.args.warmup_dir,
                                 save_path=self.args.search_dir)
-        #tau = 0.1
-        self.train_prune(tau=tau, n_epoch=n_epoch,
-                         load_path=self.args.search_dir,
-                         save_path=save_path)
+        # tau = 0.1
+        # self.train_prune(tau=tau, n_epoch=n_epoch,
+        #                  load_path=self.args.search_dir,
+        #                  save_path=save_path)
 
     def squeeze(self, data):
         extract_data = []
