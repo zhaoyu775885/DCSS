@@ -42,7 +42,7 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # distillation switch
-DST_FLAG=${TRUE}
+DST_FLAG=${FALSE}
 DST_ARGUMENTS=" --dst_flag ${DST_FLAG} "
 if [ ${DST_FLAG} == ${TRUE} ]; then
 	TEACHER_NET='resnet'
@@ -59,7 +59,7 @@ if [ ${DST_FLAG} == ${TRUE} ]; then
 fi
 
 # prune switch
-PRUNE_FLAG=${FALSE}
+PRUNE_FLAG=${TRUE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim

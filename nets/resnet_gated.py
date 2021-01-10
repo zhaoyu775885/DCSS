@@ -209,6 +209,7 @@ class ResNet(nn.Module):
                 flops_list += blk_flops_list
                 # todo: seems redundant
                 prob = blk_prob_list[-1]
+
         x = F.relu(DNAS.weighted_feature(self.bn(x), rmask))
         x = self.avgpool(x)
         x = torch.flatten(x, 1)

@@ -66,11 +66,20 @@ class Conv2d(nn.Module):
             assert self.out_planes >= self.n_seg
 
         if in_n_seg <= self.in_planes:
-            self.in_plane_list = torch.Tensor(self.__calc_seg_list(self.in_planes, in_n_seg, in_seg_sz)).cuda()
+            #self.in_plane_list = torch.Tensor(self.__calc_seg_list(self.in_planes, in_n_seg, in_seg_sz)).cuda()
+            self.in_plane_list = nn.Parameter(torch.Tensor(self.__calc_seg_list(self.in_planes, in_n_seg, in_seg_sz)),
+                                              requires_grad=False)
         self.out_plane_list = self.__calc_seg_list(self.out_planes, self.n_seg, self.seg_sz)
         self.mask = self.__init_mask()
         self.gate = self.__init_gate(dcfg.reuse_gate)
-        self.out_plane_list = torch.Tensor(self.out_plane_list).cuda()
+        #self.out_plane_list = torch.Tensor(self.out_plane_list).cuda()
+        self.out_plane_list = nn.Parameter(torch.Tensor(self.out_plane_list), requires_grad=False)
+        self.device = None
+
+    def __device(self):
+        if self.device is None:
+            self.device = next(self.conv.parameters()).device
+        return self.device
 
     def __calc_seg_list(self, planes, n_seg, seg_sz):
         seg_sz_num = planes + n_seg - n_seg * seg_sz
@@ -100,7 +109,8 @@ class Conv2d(nn.Module):
 
     def __gumbel_softmax(self, tau=1, noise=False):
         if noise:
-            uniform_noise = torch.rand(self.n_seg).cuda()
+            #uniform_noise = torch.rand(self.n_seg).cuda()
+            uniform_noise = torch.rand(self.n_seg).to(self.__device())
             gumbel_noise = -torch.log(-torch.log(uniform_noise))
             return F.softmax((self.gate+gumbel_noise) / tau, dim=0)
         return F.softmax((self.gate)/tau, dim=0)
@@ -148,10 +158,17 @@ class Linear(nn.Module):
             assert self.out_features >= self.n_seg
 
         if in_n_seg <= self.in_features:
-            self.in_plane_list = torch.Tensor(self.__calc_seg_list(self.in_features, in_n_seg, in_seg_sz)).cuda()
+            self.in_plane_list = nn.Parameter(torch.Tensor(self.__calc_seg_list(self.in_features, in_n_seg, in_seg_sz)),
+                                              requires_grad=False)
         self.out_plane_list = self.__calc_seg_list(self.out_features, self.n_seg, self.seg_sz)
         self.mask = self.__init_mask()
         self.gate = self.__init_gate(dcfg.reuse_gate)
+        self.device = None
+
+    def __device(self):
+        if self.device is None:
+            self.device = next(self.conv.parameters()).device
+        return self.device
 
     def __calc_seg_list(self, planes, n_seg, seg_sz):
         seg_sz_num = planes + n_seg - n_seg * seg_sz

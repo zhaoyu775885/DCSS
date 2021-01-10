@@ -33,6 +33,8 @@ class DcpsLearner(AbstractLearner):
         self.lr_scheduler_search = self._setup_lr_scheduler_search()
 
         self.teacher = teacher
+        if torch.cuda.device_count() > 1:
+            self.forward = nn.DataParallel(self.forward, device_ids=[0, 1])
 
     def _setup_loss_fn(self):
         return nn.CrossEntropyLoss()
@@ -91,14 +93,20 @@ class DcpsLearner(AbstractLearner):
         return accuracy, loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        # self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
-        # tau = self.train_search(n_epoch=self.args.num_epoch_search,
-        #                         load_path=self.args.warmup_dir,
-        #                         save_path=self.args.search_dir)
-        tau = 0.1
+        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        tau = self.train_search(n_epoch=self.args.num_epoch_search,
+                                load_path=self.args.warmup_dir,
+                                save_path=self.args.search_dir)
+        #tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
+
+    def squeeze(self, data):
+        extract_data = []
+        for item in data[:]:
+            extract_data.append(item[0])
+        return extract_data
 
     def train_warmup(self, n_epoch=200, save_path='./models/warmup'):
         print('Warmup', n_epoch, 'epochs')
@@ -110,6 +118,8 @@ class DcpsLearner(AbstractLearner):
             for i, data in enumerate(self.train_loader):
                 inputs, labels = data[0].to(self.device), data[1].to(self.device)
                 outputs, _, flops, flops_list = self.forward(inputs, tau=1.0, noise=False)
+                if torch.cuda.device_count() > 1:
+                    flops, flops_list = flops[0], self.squeeze(flops_list)
                 accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'accuracy': accuracy})
                 self.opt_warmup.zero_grad()
@@ -153,6 +163,8 @@ class DcpsLearner(AbstractLearner):
                 inputs, labels = data[0].to(self.device), data[1].to(self.device)
                 self.net.train()
                 outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=True)
+                if torch.cuda.device_count() > 1:
+                    flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
                 accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
                 self.opt_train.zero_grad()
                 loss.backward()
@@ -162,6 +174,8 @@ class DcpsLearner(AbstractLearner):
                 inputs, labels = data[2].to(self.device), data[3].to(self.device)
                 self.net.eval()
                 outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
+                if torch.cuda.device_count() > 1:
+                    flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
                 accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
                 self.opt_search.zero_grad()
                 loss_with_flops.backward()
@@ -211,6 +225,8 @@ class DcpsLearner(AbstractLearner):
         data = next(iter(self.train_loader))
         inputs, labels = data[0].to(self.device), data[1].to(self.device)
         outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
+        if torch.cuda.device_count() > 1:
+            flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
         display_info(flops_list, prob_list)
 
         channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg, expand_rate=0.0)
