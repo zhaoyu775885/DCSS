@@ -104,8 +104,9 @@ class DcpsLearner(AbstractLearner):
 
     def squeeze(self, data):
         extract_data = []
+        length = int(data[0].size(0) // 2)
         for item in data[:]:
-            extract_data.append(item[0])
+            extract_data.append(item[:length] if length > 2 else item[0])
         return extract_data
 
     def train_warmup(self, n_epoch=200, save_path='./models/warmup'):
@@ -252,10 +253,13 @@ class DcpsLearner(AbstractLearner):
             for i, data in enumerate(self.test_loader):
                 images, labels = data[0].to(self.device), data[1].to(self.device)
                 outputs, prob_list, flops, flops_list = self.forward(images, tau=tau, noise=False)
+                if torch.cuda.device_count() > 1:
+                    flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
                 # todo: to be fixed
                 accuracy, loss, _ = self.metrics(outputs, labels, flops)
                 total_accuracy_sum += accuracy
                 total_loss_sum += loss.item()
+
         avg_loss = total_loss_sum / len(self.test_loader)
         avg_acc = total_accuracy_sum / len(self.test_loader)
         print('Validation:\naccuracy={0:.2f}%, loss={1:.3f}\n'.format(avg_acc * 100, avg_loss))
@@ -388,7 +392,7 @@ class DcpsLearner(AbstractLearner):
     #     return tau
 
 
-def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float=0):
+def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float = 0):
     import numpy as np
     prune_list = []
     idx = 0
