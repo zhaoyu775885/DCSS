@@ -55,22 +55,22 @@ class DcpsLearner(AbstractLearner):
         return optim.Adam(gates, lr=self.init_lr * 0.1)
 
     def _setup_lr_scheduler_warmup(self):
-        if self.dataset == 'imagenet':
+        if self.args.dataset == 'imagenet':
             return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
         else:
             return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[100, 150], gamma=0.1)
 
     def _setup_lr_scheduler_train(self):
-        if self.dataset == 'imagenet':
+        if self.args.dataset == 'imagenet':
             return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
         else:
             return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
 
     def _setup_lr_scheduler_search(self):
-        if self.dataset == 'imagenet':
-            return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
+        if self.args.dataset == 'imagenet':
+            return torch.optim.lr_scheduler.MultiStepLR(self.opt_search, milestones=[30, 50], gamma=0.1)
         else:
-            return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
+            return torch.optim.lr_scheduler.MultiStepLR(self.opt_search, milestones=[50, 100], gamma=0.1)
 
     def metrics(self, outputs, labels, flops=None, prob_list=None):
         _, predicted = torch.max(outputs, 1)
