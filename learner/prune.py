@@ -62,7 +62,7 @@ class DcpsLearner(AbstractLearner):
 
     def _setup_lr_scheduler_train(self):
         if self.dataset == 'imagenet':
-            return torch.optim.lr_scheduler.MultiStepLR(self.opt_warmup, milestones=[30, 50], gamma=0.1)
+            return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[30, 50], gamma=0.1)
         else:
             return torch.optim.lr_scheduler.MultiStepLR(self.opt_train, milestones=[50, 100], gamma=0.1)
 
@@ -93,14 +93,14 @@ class DcpsLearner(AbstractLearner):
         return accuracy, loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        #self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
         tau = self.train_search(n_epoch=self.args.num_epoch_search,
                                 load_path=self.args.warmup_dir,
                                 save_path=self.args.search_dir)
         # tau = 0.1
-        # self.train_prune(tau=tau, n_epoch=n_epoch,
-        #                  load_path=self.args.search_dir,
-        #                  save_path=save_path)
+        self.train_prune(tau=tau, n_epoch=n_epoch,
+                         load_path=self.args.search_dir,
+                         save_path=save_path)
 
     def squeeze(self, data):
         extract_data = []
