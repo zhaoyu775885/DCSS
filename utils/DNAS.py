@@ -78,7 +78,7 @@ class Conv2d(nn.Module):
 
     def __device(self):
         if self.device is None:
-            self.device = next(self.conv.parameters()).device
+            self.device = self.conv.weight.device
         return self.device
 
     def __calc_seg_list(self, planes, n_seg, seg_sz):

@@ -6,7 +6,6 @@ from learner.full import FullLearner
 class Distiller(FullLearner):
     def __init__(self, dataset, net, device, args, model_path):
         super(Distiller, self).__init__(dataset, net, device, args)
-        print(device)
         ''' handle exceptions '''
         self.load_model(model_path)
         self.kd_loss_fn = self._setup_kd_loss_fn()
