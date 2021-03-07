@@ -10,7 +10,7 @@ DATA_PATH='/home/zhaoyu/Data/Imagenet/ILSVRC2012'
 
 # network model type and index
 NET='mobilenet'
-NET_INDEX=50
+NET_INDEX='2'
 
 # training parameters
 NUM_EPOCH=120
@@ -42,7 +42,7 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # distillation switch
-DST_FLAG=${TRUE}
+DST_FLAG=${FALSE}
 DST_ARGUMENTS=" --dst_flag ${DST_FLAG} "
 if [ ${DST_FLAG} == ${TRUE} ]; then
 	TEACHER_NET='resnet'

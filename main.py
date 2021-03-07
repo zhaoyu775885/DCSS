@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--dataset', default='cifar100', choices=['cifar10', 'cifar100', 'imagenet'], help='Dataset Name')
     parser.add_argument('--data_path', type=str, help='Dataset Directory')
     parser.add_argument('--net', default='resnet', choices=['resnet', 'mobilenet'], help='Net')
-    parser.add_argument('--net_index', type=int, choices=[18, 20, 32, 34, 50, 56], help='Index')
+    parser.add_argument('--net_index', type=int, choices=[1, 2, 18, 20, 32, 34, 50, 56], help='Index')
     parser.add_argument('--num_epoch', default=250, type=int, help='Number of Epochs')
     parser.add_argument('--batch_size', default=128, type=int, help='Batch Size')
     parser.add_argument('--batch_size_test', default=100, type=int, help='Batch Size for Test')
@@ -63,7 +63,6 @@ def main():
             net = mobilenet_v2()
         else:
             net = ResNet(args.net_index, n_class)
-        print(net)
         learner = FullLearner(dataset, net, device, args, teacher=teacher)
         learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
         learner.load_model(args.full_dir)
