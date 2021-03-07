@@ -179,10 +179,7 @@ class DcpsLearner(AbstractLearner):
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'loss_f': loss_with_flops,
                                                        'accuracy': accuracy})
                 if (i + 1) % 100 == 0:
-<<<<<<< HEAD
-=======
                     # todo: to be deleted
->>>>>>> FETCH_HEAD
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1,
@@ -203,13 +200,10 @@ class DcpsLearner(AbstractLearner):
     def train_prune(self, tau, n_epoch=250,
                     load_path='./models/search/model.pth',
                     save_path='./models/prune/model.pth'):
-<<<<<<< HEAD
         print('Train', n_epoch, 'epochs')
-=======
         # Done, 0. load the searched model and extract the prune info
         # Done, 1. define the slim network based on prune info
         # Done, 2. train and validate, and exploit the full learner
->>>>>>> FETCH_HEAD
         self.load_model(load_path)
         dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
         channel_list = ResNetChannelList(self.args.net_index)
@@ -221,18 +215,13 @@ class DcpsLearner(AbstractLearner):
         if torch.cuda.device_count() > 1:
             flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
         display_info(flops_list, prob_list)
-<<<<<<< HEAD
         channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
-=======
-
-        channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg, expand_rate=0.0)
         """
         channel_list_prune = [43, [[58, 32, 231, 231], [44, 58, 231], [52, 64, 231]],
                 [[72, 84, 359, 359], [64, 103, 359], [72, 116, 359], [83, 72, 359]],
                 [[205, 141, 820, 820], [134, 154, 820], [124, 154, 820], [142, 119, 820], [143, 200, 820], [149, 147, 820]],
                 [[360, 328, 1844, 1844], [327, 377, 1844], [359, 314, 1844]]]
         """
->>>>>>> FETCH_HEAD
         print(channel_list_prune)
         del data, inputs, labels, outputs, prob_list, flops, flops_list
         
@@ -240,10 +229,7 @@ class DcpsLearner(AbstractLearner):
         net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list_prune)
         full_learner = FullLearner(self.dataset, net, device=self.device, args=self.args, teacher=self.teacher)
         if torch.cuda.device_count() == 1:
-<<<<<<< HEAD
-=======
             # only work for single GPU mode
->>>>>>> FETCH_HEAD
             print('FLOPs:', full_learner.cnt_flops())
         full_learner.train(n_epoch=n_epoch, save_path=save_path)
 
