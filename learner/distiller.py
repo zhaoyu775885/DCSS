@@ -6,8 +6,10 @@ from learner.full import FullLearner
 class Distiller(FullLearner):
     def __init__(self, dataset, net, device, args, model_path):
         super(Distiller, self).__init__(dataset, net, device, args)
-        ''' handle exceptions '''
-        self.load_model(model_path)
+        try:
+            self.load_model(model_path)
+        except Exception:
+            raise('Error loading teacher model')
         self.kd_loss_fn = self._setup_kd_loss_fn()
         self.log_softmax = nn.LogSoftmax(dim=1)
         self.softmax = nn.Softmax(dim=1)

@@ -55,7 +55,6 @@ class FullLearner(AbstractLearner):
         self.net.train()
         print(n_epoch)
         for epoch in range(n_epoch):
-
             print('epoch: ', epoch + 1)
             time_prev = timer()
             self.recoder.init({'loss': 0, 'accuracy': 0, 'lr': self.opt.param_groups[0]['lr']})
