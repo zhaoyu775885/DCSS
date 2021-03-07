@@ -19,13 +19,6 @@ cfg = {
 _BATCH_NORM_DECAY = 0.01
 _EPSILON = 1e-5
 
-'''
-
-This implementation is to weight the convolution after the BN layer.
-
-'''
-
-
 class ResidualBlockGated(nn.Module):
     """
     out_planes_list contains the corresponding number of convs.

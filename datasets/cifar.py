@@ -65,15 +65,3 @@ if __name__ == '__main__':
 
     for i, batch in enumerate(train):
         print(i, batch[1])
-
-# def imshow(img):
-#     img = img/2 + 0.5
-#     npimg = img.numpy()
-#     plt.imshow(np.transpose(npimg, (1, 2, 0)))
-#     plt.show()
-#
-# def instance(dataloader, classes, batch_size=BATCH_SIZE):
-#     dataiter = iter(dataloader)
-#     images, labels = dataiter.next()
-#     imshow(torchvision.utils.make_grid(images))
-#     print(' '.join([classes[labels[j]] for j in range(batch_size)]))

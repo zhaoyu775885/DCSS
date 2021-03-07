@@ -4,15 +4,12 @@ import argparse
 from datasets.cifar import Cifar10, Cifar100
 from datasets.imagenet import ImageNet
 from nets.resnet import ResNet
-from nets.presnet import resnet50
+from nets.mobilenetv2 import mobilenet_v2
 from nets.resnet_lite import ResNetLite
 from nets.resnet_gated import ResNetGated
 from learner.prune import DcpsLearner
 from learner.full import FullLearner
 from learner.distiller import Distiller
-
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-# prepare for parallel training
 
 
 def main():
@@ -62,7 +59,11 @@ def main():
         teacher = Distiller(dataset, teacher_net, device, args, model_path=args.teacher_dir)
 
     if not args.prune_flag:
-        net = ResNet(args.net_index, n_class)
+        if args.net == 'mobilenet':
+            net = mobilenet_v2()
+        else:
+            net = ResNet(args.net_index, n_class)
+        print(net)
         learner = FullLearner(dataset, net, device, args, teacher=teacher)
         learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
         learner.load_model(args.full_dir)

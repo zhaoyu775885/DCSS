@@ -6,11 +6,11 @@ export CUDA_VISIBLE_DEVICES='0'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='cifar100'
-DATA_PATH='/home/zhaoyu/Data/cifar100'
+DATA_PATH='/path/to/data'
 
 # network model type and index
 NET='resnet'
-NET_INDEX=20
+NET_INDEX=32
 
 # training parameters
 NUM_EPOCH=600

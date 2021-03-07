@@ -77,11 +77,10 @@ class DcpsSRLearner(AbstractLearner):
         return loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        # self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
         tau = self.train_search(n_epoch=self.args.num_epoch_search,
                                 load_path=self.args.warmup_dir,
                                 save_path=self.args.search_dir)
-        # tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
@@ -158,11 +157,6 @@ class DcpsSRLearner(AbstractLearner):
                 self.recoder.add_info(hr.size(0), {'loss': loss, 'loss_f': loss_with_flops})
 
                 if (i + 1) % 100 == 0:
-                    # self.net.eval()
-                    # lr, hr = data[2].to(self.device), data[3].to(self.device)
-                    # self.net.eval()
-                    # predict, prob_list, flops, flops_list = self.forward(lr, tau=tau, noise=False)
-                    # loss, loss_with_flops = self.metrics(predict, hr)
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1,
@@ -183,12 +177,9 @@ class DcpsSRLearner(AbstractLearner):
     def train_prune(self, tau, n_epoch=250,
                     load_path='./models/search/model.pth',
                     save_path='./models/prune/model.pth'):
-        # Done, 0. load the searched model and extract the prune info
-        # Done, 1. define the slim network based on prune info
-        # Done, 2. train and validate, and exploit the full learner
         print('Train', n_epoch, 'epochs')
         self.load_model(load_path)
-        dcfg = DNAS.DcpConfig(n_param=32, split_type=DNAS.TYPE_A, reuse_gate=None)
+        dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
         channel_list = EDSRChannelList()
 
         self.net.eval()
@@ -198,7 +189,6 @@ class DcpsSRLearner(AbstractLearner):
         display_info(flops_list, prob_list)
 
         chn_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
-        # chn_list_prune = get_uniform_prune_list(channel_list, 0.72)
         print(chn_list_prune)
 
         net = EDSRLite(16, chn_list_prune, num_colors=3, scale=2, res_scale=1)
@@ -206,8 +196,7 @@ class DcpsSRLearner(AbstractLearner):
         full_learner = FullSRLearner(self.dataset, net, device=self.device, args=self.args)
         print('FLOPs:', full_learner.cnt_flops())
         full_learner.train(n_epoch=n_epoch, save_path=save_path)
-        # todo: save the lite model
-        # export all necessary info for slim resnet
+
 
     def test(self, tau=1.0):
         self.net.eval()

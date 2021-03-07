@@ -1,5 +1,4 @@
 '''
-ResNet-v2 is desired.
 Fix bugs for ResNet.
 '''
 

@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Aug 30 21:12:16 2020
-
-@author: enix45
-"""
 
 import torch
 import torch.nn as nn
@@ -256,7 +251,7 @@ def EDSRChannelList():
 
 
 def EDSRDcps(num_blocks, num_colors=3, scale=1, res_scale=0.1):
-    dcfg = dnas.DcpConfig(n_param=32, split_type=dnas.TYPE_A, reuse_gate=None)
+    dcfg = dnas.DcpConfig(n_param=8, split_type=dnas.TYPE_A, reuse_gate=None)
     chn_list = EDSRChannelList()
     return EDSRGated(num_blocks=num_blocks, channel_list=chn_list, dcfg=dcfg, num_colors=num_colors,
                      scale=scale, res_scale=res_scale)

@@ -16,7 +16,7 @@ export CUDA_VISIBLE_DEVICES='1'
 
 # single image super resolution, SISR dataset
 DATASET='DIV2K'
-DATA_PATH='/home/zhaoyu/Data/DIV2K/'
+DATA_PATH='/path/to/data'
 
 # network model type and index
 NET='EDSR'

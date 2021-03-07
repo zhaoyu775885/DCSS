@@ -81,13 +81,7 @@ class DcpsLearner(AbstractLearner):
             for prob in prob_list:
                 prob_loss += entropy(prob)
             loss += 0.00 * prob_loss
-        tolerance = 0.01
-        target_flops = 20000000
         coef = self.args.weight_flops
-        # if flops < (1 - tolerance) * target_flops:
-        #     coef = -10
-        # elif flops > (1 + tolerance) * target_flops:
-        #     coef = 10
         loss_with_flops = loss + coef * torch.log(flops)
         accuracy = correct / labels.size(0)
         return accuracy, loss, loss_with_flops
@@ -97,10 +91,9 @@ class DcpsLearner(AbstractLearner):
         tau = self.train_search(n_epoch=self.args.num_epoch_search,
                                 load_path=self.args.warmup_dir,
                                 save_path=self.args.search_dir)
-        # tau = 0.1
-        # self.train_prune(tau=tau, n_epoch=n_epoch,
-        #                  load_path=self.args.search_dir,
-        #                  save_path=save_path)
+        self.train_prune(tau=tau, n_epoch=n_epoch,
+                         load_path=self.args.search_dir,
+                         save_path=save_path)
 
     def squeeze(self, data):
         extract_data = []
@@ -185,13 +178,6 @@ class DcpsLearner(AbstractLearner):
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'loss_f': loss_with_flops,
                                                        'accuracy': accuracy})
                 if (i + 1) % 100 == 0:
-                    # todo: to be deleted
-                    """
-                    self.net.eval()
-                    inputs, labels = data[2].to(self.device), data[3].to(self.device)
-                    outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
-                    accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
-                    """
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1,
@@ -214,9 +200,6 @@ class DcpsLearner(AbstractLearner):
     def train_prune(self, tau, n_epoch=250,
                     load_path='./models/search/model.pth',
                     save_path='./models/prune/model.pth'):
-        # Done, 0. load the searched model and extract the prune info
-        # Done, 1. define the slim network based on prune info
-        # Done, 2. train and validate, and exploit the full learner
         print('Train', n_epoch, 'epochs')
         self.load_model(load_path)
         dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
@@ -229,21 +212,15 @@ class DcpsLearner(AbstractLearner):
         if torch.cuda.device_count() > 1:
             flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
         display_info(flops_list, prob_list)
-
-        channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg, expand_rate=0.0)
-        # channel_list_prune = [16,
-        #                       [[10, 12, 12], [7, 12], [11, 12]],
-        #                       [[31, 25, 25], [19, 25], [32, 25]],
-        #                       [[39, 43, 43], [61, 43], [41, 43]]]
+        channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
         print(channel_list_prune)
         del data, inputs, labels, outputs, prob_list, flops, flops_list
 
         net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list_prune)
         full_learner = FullLearner(self.dataset, net, device=self.device, args=self.args, teacher=self.teacher)
-        print('FLOPs:', full_learner.cnt_flops())
+        if torch.cuda.device_count() == 1:
+            print('FLOPs:', full_learner.cnt_flops())
         full_learner.train(n_epoch=n_epoch, save_path=save_path)
-        # todo: save the lite model
-        # export all necessary info for slim resnet
 
     def test(self, tau=1.0):
         self.net.eval()
@@ -266,131 +243,6 @@ class DcpsLearner(AbstractLearner):
         display_info(flops_list, prob_list)
         torch.cuda.empty_cache()
 
-    # def debug(self, n_epoch=100, load_path='./models/warmup', save_path='./models/search'):
-    #     self.load_model(load_path)
-    #     tau = 1
-    #     total_iter = n_epoch * len(self.train_loader)
-    #     current_iter = 0
-    #     self.test(tau=tau)
-    #
-    #     print(self.forward.conv0.conv.weight.shape)
-    #     print(self.forward.conv0.gate)
-    #     print(self.forward.conv0.conv.weight[:, 0, 0, 0])
-    #     # print(self.forward.block_list[0][0].bn0)
-    #     # print(self.forward.block_list[0][0].bn1)
-    #
-    #     data = next(iter(self.test_loader))
-    #
-    #     self.forward.eval()
-    #     inputs, labels = data[0].to(self.device), data[1].to(self.device)
-    #     outputs, prob_list, flops, flops_list, conv0, x_bns = self.forward(inputs, tau=tau, noise=False)
-    #     accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
-    #
-    #     conv0_0 = conv0[0,...]
-    #     conv0_0_bn = x_bns[0][0,...]
-    #
-    #     print(conv0_0.shape)
-    #     print('======')
-    #     print(conv0_0[:, 2, 10])
-    #     print(conv0_0_bn[:, 2, 10])
-    #     print('-----')
-    #
-    #     print('======')
-    #     print(conv0_0[:, 8, 3])
-    #     print(conv0_0_bn[:, 8, 3])
-    #     print('-----')
-    #
-    #
-    #     conv0_1 = conv0[1,...]
-    #     conv0_1_bn = x_bns[0][1,...]
-    #
-    #     print('======')
-    #     print(conv0_1[:, 2, 10])
-    #     print(conv0_1_bn[:, 2, 10])
-    #     print('-----')
-    #
-    #     print('======')
-    #     print(conv0_1[:, 8, 3])
-    #     print(conv0_1_bn[:, 8, 3])
-    #
-    #     print(self.forward.block_list[0][0].bn0.weight)
-    #     print(self.forward.block_list[0][0].bn0.bias)
-    #
-    #     print('-----')
-    #
-    #     '''
-    #
-    #     As can be observed, the batch norm after the convolution will adjust the outputs of the conv,
-    #     using
-    #
-    #     '''
-    #
-    #     exit(1)
-    #
-    #     for epoch in range(n_epoch):
-    #         time_prev = timer()
-    #         # tau = 10 ** (1 - 2 * epoch / (n_epoch - 1))
-    #         print('epoch: ', epoch + 1, ' tau: ', tau)
-    #         self.recoder.init({'loss': 0, 'loss_f': 0, 'accuracy': 0,
-    #                            'lr': self.opt_train.param_groups[0]['lr'],
-    #                            'tau': tau})
-    #         for i, data in enumerate(self.train_loader):
-    #             # tau = 10 ** (1 - 2 * current_iter / (total_iter-1))
-    #             current_iter += 1
-    #
-    #             # optimizing weights with training data
-    #             inputs, labels = data[0].to(self.device), data[1].to(self.device)
-    #             self.net.train()
-    #             outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
-    #             accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
-    #             self.opt_train.zero_grad()
-    #             loss.backward()
-    #             self.opt_train.step()
-    #
-    #             # optimizing gates with searching data
-    #             inputs, labels = data[2].to(self.device), data[3].to(self.device)
-    #             self.net.eval()
-    #             outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
-    #             accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops, prob_list)
-    #             self.opt_search.zero_grad()
-    #             loss_with_flops.backward()
-    #             self.opt_search.step()
-    #
-    #             self.recoder.add_info(labels.size(0), {'loss': loss, 'loss_f': loss_with_flops,
-    #                                                    'accuracy': accuracy})
-    #             if (i + 1) % 100 == 0:
-    #                 '''
-    #                 # for prob in prob_list:
-    #                 #     for item in prob.tolist():
-    #                 #         print('{0:.2f}'.format(item), end=' ')
-    #                 #     print()
-    #                 #     break
-    #                 # for item in self.forward.named_parameters():
-    #                 #     if '0.0.bn0' in item[0] and 'bias' not in item[0]:
-    #                 #         print(item)
-    #                 '''
-    #                 self.net.eval()
-    #                 inputs, labels = data[2].to(self.device), data[3].to(self.device)
-    #                 outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
-    #                 accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
-    #                 time_step = timer() - time_prev
-    #                 speed = int(100 * self.batch_size_train / time_step)
-    #                 print(i + 1,
-    #                       ': lr={0:.1e} | acc={1:5.2f} |'.format(self.opt_train.param_groups[0]['lr'], accuracy * 100),
-    #                       'loss={0:5.2f} | loss_f={1:5.2f} | flops={2} | speed={3} pic/s'.format(
-    #                           loss, loss_with_flops, flops, speed))
-    #                 time_prev = timer()
-    #                 # self.test(tau=tau)
-    #         self.recoder.update(epoch)
-    #         self.lr_scheduler_train.step()
-    #         self.lr_scheduler_search.step() # adam optimizer do not use multi-step learning rate
-    #         if (epoch + 1) % 10 == 0:
-    #             self.save_model(os.path.join(save_path, 'model_' + str(epoch + 1) + '.pth'))
-    #             self.test(tau=tau)
-    #
-    #     print('Finished Training')
-    #     return tau
-
 
 def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float = 0):
     import numpy as np
@@ -401,7 +253,7 @@ def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float = 0)
     dnas_conv = lambda input, output: DNAS.Conv2d(input, output, 1, 1, 1, False, dcfg=dcfg)
     conv = dnas_conv(chn_input_full, chn_output_full)
     chn_output_prune = int(np.round(
-        min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
+        min(torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item(), chn_output_full)
     ))
     chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
     prune_list.append(chn_output_prune)
@@ -413,9 +265,9 @@ def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float = 0)
             block_prune_list = []
             for chn_output_full in block:
                 conv = DNAS.Conv2d(chn_input_full, chn_output_full, 1, 1, 1, False, dcfg=dcfg)
-                print(idx, prob_list[idx], conv.out_plane_list, torch.dot(prob_list[idx], conv.out_plane_list).item())
+                print(idx, prob_list[idx].to('cpu'), conv.out_plane_list, torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item())
                 chn_output_prune = int(np.round(
-                    min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
+                    min(torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item(), chn_output_full)
                 ))
                 chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
                 block_prune_list.append(chn_output_prune)

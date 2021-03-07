@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.optim as optim
 from timeit import default_timer as timer
 from learner.abstract_learner import AbstractLearner
-from torch.nn.parallel import DistributedDataParallel as DDP
 import os
 
 
