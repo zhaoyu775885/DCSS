@@ -93,11 +93,11 @@ class DcpsLearner(AbstractLearner):
         return accuracy, loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        #self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
         tau = self.train_search(n_epoch=self.args.num_epoch_search,
                                 load_path=self.args.warmup_dir,
                                 save_path=self.args.search_dir)
-        # tau = 0.1
+        #tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
@@ -186,12 +186,6 @@ class DcpsLearner(AbstractLearner):
                                                        'accuracy': accuracy})
                 if (i + 1) % 100 == 0:
                     # todo: to be deleted
-                    """
-                    self.net.eval()
-                    inputs, labels = data[2].to(self.device), data[3].to(self.device)
-                    outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
-                    accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
-                    """
                     time_step = timer() - time_prev
                     speed = int(100 * self.batch_size_train / time_step)
                     print(i + 1,
@@ -202,10 +196,8 @@ class DcpsLearner(AbstractLearner):
             self.recoder.update(epoch)
             self.lr_scheduler_train.step()
             self.lr_scheduler_search.step()
-            if (epoch + 1) % 10 == 0:
+            if (epoch + 1) % 5 == 0:
                 self.test(tau=tau)
-
-            if (epoch + 1) % 10 == 0:
                 self.save_model(os.path.join(save_path, 'model_' + str(epoch + 1) + '.pth'))
 
         print('Finished Training')
@@ -217,7 +209,6 @@ class DcpsLearner(AbstractLearner):
         # Done, 0. load the searched model and extract the prune info
         # Done, 1. define the slim network based on prune info
         # Done, 2. train and validate, and exploit the full learner
-        print('Train', n_epoch, 'epochs')
         self.load_model(load_path)
         dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
         channel_list = ResNetChannelList(self.args.net_index)
@@ -231,19 +222,22 @@ class DcpsLearner(AbstractLearner):
         display_info(flops_list, prob_list)
 
         channel_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg, expand_rate=0.0)
-        # channel_list_prune = [16,
-        #                       [[10, 12, 12], [7, 12], [11, 12]],
-        #                       [[31, 25, 25], [19, 25], [32, 25]],
-        #                       [[39, 43, 43], [61, 43], [41, 43]]]
+        """
+        channel_list_prune = [43, [[58, 32, 231, 231], [44, 58, 231], [52, 64, 231]],
+                [[72, 84, 359, 359], [64, 103, 359], [72, 116, 359], [83, 72, 359]],
+                [[205, 141, 820, 820], [134, 154, 820], [124, 154, 820], [142, 119, 820], [143, 200, 820], [149, 147, 820]],
+                [[360, 328, 1844, 1844], [327, 377, 1844], [359, 314, 1844]]]
+        """
         print(channel_list_prune)
         del data, inputs, labels, outputs, prob_list, flops, flops_list
+        
 
         net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list_prune)
         full_learner = FullLearner(self.dataset, net, device=self.device, args=self.args, teacher=self.teacher)
-        print('FLOPs:', full_learner.cnt_flops())
+        if torch.cuda.device_count() == 1:
+            # only work for single GPU mode
+            print('FLOPs:', full_learner.cnt_flops())
         full_learner.train(n_epoch=n_epoch, save_path=save_path)
-        # todo: save the lite model
-        # export all necessary info for slim resnet
 
     def test(self, tau=1.0):
         self.net.eval()
@@ -401,7 +395,7 @@ def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float = 0)
     dnas_conv = lambda input, output: DNAS.Conv2d(input, output, 1, 1, 1, False, dcfg=dcfg)
     conv = dnas_conv(chn_input_full, chn_output_full)
     chn_output_prune = int(np.round(
-        min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
+        min(torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item(), chn_output_full)
     ))
     chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
     prune_list.append(chn_output_prune)
@@ -413,9 +407,9 @@ def get_prune_list(resnet_channel_list, prob_list, dcfg, expand_rate: float = 0)
             block_prune_list = []
             for chn_output_full in block:
                 conv = DNAS.Conv2d(chn_input_full, chn_output_full, 1, 1, 1, False, dcfg=dcfg)
-                print(idx, prob_list[idx], conv.out_plane_list, torch.dot(prob_list[idx], conv.out_plane_list).item())
+                print(idx, prob_list[idx].to('cpu'), conv.out_plane_list, torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item())
                 chn_output_prune = int(np.round(
-                    min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
+                    min(torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item(), chn_output_full)
                 ))
                 chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
                 block_prune_list.append(chn_output_prune)

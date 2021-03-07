@@ -42,7 +42,7 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # distillation switch
-DST_FLAG=${FALSE}
+DST_FLAG=${TRUE}
 DST_ARGUMENTS=" --dst_flag ${DST_FLAG} "
 if [ ${DST_FLAG} == ${TRUE} ]; then
 	TEACHER_NET='resnet'
@@ -51,6 +51,10 @@ if [ ${DST_FLAG} == ${TRUE} ]; then
 	DST_LOSS_WEIGHT=4
 	TEACHER_DIR=${WORKROOT}/${NET_DATASET}/teacher
 	mkdir -p ${TEACHER_DIR}
+	if [ "`ls -A ${TEACHER_DIR}`" = "" ]; then
+		echo "${TEACHER_DIR} is empty, load model from ${FULL_DIR}"
+		cp ${FULL_DIR}/* ${TEACHER_DIR}
+	fi
 	DST_ARGUMENTS+="--teacher_net ${TEACHER_NET}
                   --teacher_net_index ${TEACHER_NET_INDEX}
                   --dst_temperature ${DST_TEMPERATURE}
@@ -60,7 +64,7 @@ fi
 BASIC_ARGUMENTS+=${DST_ARGUMENTS}
 
 # prune switch
-PRUNE_FLAG=${FALSE}
+PRUNE_FLAG=${TRUE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim

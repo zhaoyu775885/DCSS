@@ -2,7 +2,7 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-export CUDA_VISIBLE_DEVICES='0, 1'
+export CUDA_VISIBLE_DEVICES='0'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='imagenet'
@@ -14,7 +14,7 @@ NET_INDEX=50
 
 # training parameters
 NUM_EPOCH=120
-BATCH_SIZE=256
+BATCH_SIZE=128
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9
@@ -66,7 +66,7 @@ if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	WARMUP_DIR=${WORKROOT}/${NET_DATASET}/warmup
 	SEARCH_DIR=${WORKROOT}/${NET_DATASET}/search
 	mkdir -p ${SLIM_DIR} ${WARMUP_DIR} ${SEARCH_DIR}
-	WEIGHT_FLOPS=1.0
+	WEIGHT_FLOPS=0.5
 	NUM_EPOCH_WARMUP=50
 	NUM_EPOCH_SEARCH=50
 	PRUNE_ARGUMENTS+="--weight_flops ${WEIGHT_FLOPS}
