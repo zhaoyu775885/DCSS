@@ -22,3 +22,4 @@
 21. get familiar with dataloader and dataset class in PyTorch
 22. Nvidia DALI
 23. shuffle dataset in DatasetSearch
+24. ONLY 2 cases: single-GPU, multi-GPUs, leave alone cpu-training

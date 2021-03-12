@@ -38,7 +38,12 @@ class Cifar():
                                                        shuffle=is_train, num_workers=16)
             return train_loader, valid_loader
 
-        return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=is_train, num_workers=16)
+        if torch.cuda.device_count() > 1:
+            sampler = torch.utils.data.distributed.DistributedSampler(cifar_dataset, shuffle=is_train)
+            return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=False,
+                                               drop_last=False, sampler=sampler, num_workers=8)
+        return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=is_train,
+                                           drop_last=False, num_workers=16)
 
 
 class Cifar10(Cifar):

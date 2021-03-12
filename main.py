@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import torch
 from datasets.cifar import Cifar10, Cifar100
 from datasets.imagenet import ImageNet
 from nets.resnet import ResNet
@@ -14,7 +15,8 @@ from learner.distiller import Distiller
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', default='cifar100', choices=['cifar10', 'cifar100', 'imagenet'], help='Dataset Name')
+    parser.add_argument('--dataset', default='cifar100', choices=['cifar10', 'cifar100', 'imagenet'],
+                        help='Dataset Name')
     parser.add_argument('--data_path', type=str, help='Dataset Directory')
     parser.add_argument('--net', default='resnet', choices=['resnet', 'mobilenet'], help='Net')
     parser.add_argument('--net_index', type=int, choices=[1, 2, 18, 20, 32, 34, 50, 56], help='Index')
@@ -40,7 +42,18 @@ def main():
     parser.add_argument('--warmup_dir', type=str, help='Index')
     parser.add_argument('--search_dir', type=str, help='Index')
     parser.add_argument('--teacher_dir', type=str, help='Index')
+    parser.add_argument('--local_rank', default=0, type=int, help='node rank for distributed training')
+    parser.add_argument('--nproc', default=0, type=int, help='number of processes')
+    parser.add_argument('--save_epochs', default=10, type=int, help='save checkpoint every "save_epochs"')
+    parser.add_argument('--print_steps', default=100, type=int, help='print training info every "print_steps"')
+
     args = parser.parse_args()
+
+    if torch.cuda.device_count() > 1:
+        if args.local_rank == 0:
+            print('init pytorch distributed parallelism')
+        torch.distributed.init_process_group(backend='nccl', init_method='env://')
+        torch.cuda.set_device(args.local_rank)
 
     if args.dataset == 'cifar10':
         dataset_fn = Cifar10
@@ -52,24 +65,23 @@ def main():
     dataset = dataset_fn(args.data_path)
     n_class = dataset.n_class
 
-    device = 'cuda:0'
     teacher = None
     if args.dst_flag:
         teacher_net = ResNet(args.teacher_net_index, n_class)
-        teacher = Distiller(dataset, teacher_net, device, args, model_path=args.teacher_dir)
+        teacher = Distiller(dataset, teacher_net, args, model_path=args.teacher_dir)
 
     if not args.prune_flag:
         if args.net == 'mobilenet':
             net = mobilenet_v2()
         else:
             net = ResNet(args.net_index, n_class)
-        learner = FullLearner(dataset, net, device, args, teacher=teacher)
-        learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
+        learner = FullLearner(dataset, net, args, teacher=teacher)
+        # learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
         learner.load_model(args.full_dir)
         learner.test()
     else:
         net = ResNetGated(args.net_index, n_class)
-        learner = DcpsLearner(dataset, net, device, args, teacher=teacher)
+        learner = DcpsLearner(dataset, net, args, teacher=teacher)
         learner.train(n_epoch=args.num_epoch, save_path=args.slim_dir)
 
 

@@ -2,25 +2,27 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-export CUDA_VISIBLE_DEVICES='0'
+N_GPU=2
+export CUDA_VISIBLE_DEVICES='0, 1'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='cifar100'
-DATA_PATH='/path/to/data'
+DATA_PATH='/home/zhaoyu/Data/cifar100/'
 
 # network model type and index
 NET='resnet'
-NET_INDEX=32
+NET_INDEX=20
 
 # training parameters
-NUM_EPOCH=600
-BATCH_SIZE=256
+NUM_EPOCH=100
+BATCH_SIZE=128
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9
 WEIGHT_DECAY=5e-4
 
-BASIC_ARGUMENTS="--dataset ${DATASET}
+BASIC_ARGUMENTS="--nproc ${N_GPU}
+                 --dataset ${DATASET}
                  --data_path ${DATA_PATH}
                  --net ${NET}
                  --net_index $((NET_INDEX))
@@ -42,7 +44,7 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # distillation switch
-DST_FLAG=${TRUE}
+DST_FLAG=${FALSE}
 DST_ARGUMENTS=" --dst_flag ${DST_FLAG} "
 if [ ${DST_FLAG} == ${TRUE} ]; then
 	TEACHER_NET='resnet'
@@ -64,7 +66,7 @@ fi
 BASIC_ARGUMENTS+=${DST_ARGUMENTS}
 
 # prune switch
-PRUNE_FLAG=${TRUE}
+PRUNE_FLAG=${FALSE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim
@@ -83,9 +85,19 @@ if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 fi
 BASIC_ARGUMENTS+=${PRUNE_ARGUMENTS}
 
-echo python -u main.py ${BASIC_ARGUMENTS}
+
 TIME_TAG=`date +"%Y%m%d_%H%M"`
 LOG_FILE=${LOG_DIR}/${TIME_TAG}.txt
-CMD="python -u main.py ${BASIC_ARGUMENTS}"
-echo ${CMD} > ${LOG_FILE}
-python -u main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+#echo python -u main.py ${BASIC_ARGUMENTS}
+
+if ((${N_GPU} > 1)); then
+  CMD="python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS}"
+  echo ${CMD}
+  echo ${CMD} > ${LOG_FILE}
+  python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+else
+  CMD="python -u main.py ${BASIC_ARGUMENTS}"
+  echo ${CMD}
+  echo ${CMD} > ${LOG_FILE}
+  python -u main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+fi

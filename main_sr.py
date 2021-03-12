@@ -15,6 +15,7 @@ def main():
     parser.add_argument('--dataset', default='DIV2K', choices=['DIV2K'], help='Dataset Name')
     parser.add_argument('--data_path', default='/home/zhaoyu/Datasets/DIV2K/', type=str, help='Dataset Directory')
     parser.add_argument('--net', default='EDSR', help='Net')
+    parser.add_argument('--scale', default=2.0, type=float, help='scale')
     parser.add_argument('--num_epoch', default=120, type=int, help='Number of Epochs')
     parser.add_argument('--batch_size', default=64, type=int, help='Batch Size')
     parser.add_argument('--batch_size_test', default=1, type=int, help='Batch Size for Test')
@@ -34,7 +35,7 @@ def main():
     args = parser.parse_args()
 
     device = 'cuda:0'
-    dataset = DIV2K(args.data_path, scale=2, enlarge=False, length=128000)
+    dataset = DIV2K(args.data_path, scale=4, enlarge=False, length=128000)
 
     # net = EDSR(num_blocks=16, num_chls=64, num_color=3, scale=2, res_scale=0.1)
     # learner = FullSRLearner(dataset, net, device, args)
