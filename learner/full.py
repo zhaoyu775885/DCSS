@@ -56,8 +56,10 @@ class FullLearner(AbstractLearner):
         return flops
 
     def train(self, n_epoch, save_path='./models/full/model.pth'):
+        if self.args.local_rank == 0:
+            print(n_epoch)
+
         self.forward.train()
-        print(n_epoch)
         for epoch in range(n_epoch):
             if self.args.local_rank == 0:
                 print('epoch: ', epoch + 1)
@@ -93,7 +95,8 @@ class FullLearner(AbstractLearner):
                 if self.args.local_rank == 0:
                     self.save_model(os.path.join(save_path, 'model_'+str(epoch+1)+'.pth'))
 
-        print('Finished Training')
+        if self.args.local_rank == 0:
+            print('Finished Training')
 
     def test(self):
         self.forward.eval()

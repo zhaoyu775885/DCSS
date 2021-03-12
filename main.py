@@ -76,9 +76,9 @@ def main():
         else:
             net = ResNet(args.net_index, n_class)
         learner = FullLearner(dataset, net, args, teacher=teacher)
-        # learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
-        learner.load_model(args.full_dir)
-        learner.test()
+        learner.train(n_epoch=args.num_epoch, save_path=args.full_dir)
+        # learner.load_model(args.full_dir)
+        # learner.test()
     else:
         net = ResNetGated(args.net_index, n_class)
         learner = DcpsLearner(dataset, net, args, teacher=teacher)

@@ -2,8 +2,8 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-N_GPU=2
-export CUDA_VISIBLE_DEVICES='0, 1'
+N_GPU=1
+export CUDA_VISIBLE_DEVICES='0'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='cifar100'
@@ -14,7 +14,7 @@ NET='resnet'
 NET_INDEX=20
 
 # training parameters
-NUM_EPOCH=100
+NUM_EPOCH=600
 BATCH_SIZE=128
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
