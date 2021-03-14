@@ -5,6 +5,7 @@ from timeit import default_timer as timer
 from learner.abstract_learner import AbstractLearner
 import os
 from utils.writer import reduce_mean
+import torch.backends.cudnn as cudnn
 
 
 class FullLearner(AbstractLearner):
@@ -23,11 +24,14 @@ class FullLearner(AbstractLearner):
         self.init_lr = self.batch_size_train / self.args.std_batch_size * self.args.std_init_lr * self.args.nproc
         self.opt = self._setup_optimizer()
         self.lr_scheduler = self._setup_lr_scheduler()
+        self.loss_fn = self._setup_loss_fn()
 
         self.teacher = teacher
 
+        cudnn.benchmark = True
+
     def _setup_loss_fn(self):
-        return nn.CrossEntropyLoss()
+        return nn.CrossEntropyLoss().cuda(self.args.local_rank)
 
     def _setup_optimizer(self):
         return optim.SGD(self.forward.parameters(), lr=self.init_lr,
@@ -66,8 +70,10 @@ class FullLearner(AbstractLearner):
             time_prev = timer()
             self.recoder.init({'loss': 0, 'accuracy': 0, 'lr': self.opt.param_groups[0]['lr']})
 
-            for i, data in enumerate(self.train_loader):
-                inputs, labels = data[0].cuda(non_blocking=True), data[1].cuda(non_blocking=True)
+            for i, (inputs, labels) in enumerate(self.train_loader):
+                inputs = inputs.cuda(self.args.local_rank, non_blocking=True)
+                labels = labels.cuda(self.args.local_rank, non_blocking=True)
+
                 logits = self.forward(inputs)
                 if self.teacher is None:
                     accuracy, loss = self.metrics(logits, labels)
@@ -76,15 +82,17 @@ class FullLearner(AbstractLearner):
                     accuracy, loss, kd_loss = self.metrics(logits, labels, trg_logits)
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'accuracy': accuracy})
 
-                self.opt.zero_grad()
+                torch.distributed.barrier()
+                self.opt.zero_grad(set_to_none=True)
                 loss.backward()
                 self.opt.step()
 
                 if (i + 1) % self.args.print_steps == 0 and self.args.local_rank == 0:
                     time_step = timer() - time_prev
-                    speed = int( self.args.print_steps * self.batch_size_train / time_step) * self.args.nproc
+                    speed = int(self.args.print_steps * self.batch_size_train / time_step) * self.args.nproc
                     print(i + 1, ': lr={0:.1e} | acc={1:5.2f} | loss={2:5.2f} | speed={3} pic/s'.format(
                         self.opt.param_groups[0]['lr'], accuracy * 100, loss, speed))
+                    print(time_step, self.batch_size_train, self.args.nproc)
                     time_prev = timer()
             self.recoder.update(epoch)
             self.lr_scheduler.step()

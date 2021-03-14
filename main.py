@@ -52,7 +52,7 @@ def main():
     if torch.cuda.device_count() > 1:
         if args.local_rank == 0:
             print('init pytorch distributed parallelism')
-        torch.distributed.init_process_group(backend='nccl')#, init_method='env://')
+        torch.distributed.init_process_group(backend='nccl')
         torch.cuda.set_device(args.local_rank)
 
     if args.dataset == 'cifar10':

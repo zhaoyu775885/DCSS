@@ -3,7 +3,7 @@ TRUE=1
 
 # assign global devices
 N_GPU=2
-export CUDA_VISIBLE_DEVICES='0,1'
+export CUDA_VISIBLE_DEVICES='0, 1'
 
 # imagenet ilsvrc2012
 DATASET='imagenet'
@@ -21,7 +21,8 @@ STD_INIT_LR=1e-1
 MOMENTUM=0.9
 WEIGHT_DECAY=1e-4
 
-BASIC_ARGUMENTS="--dataset ${DATASET}
+BASIC_ARGUMENTS="--nproc ${N_GPU}
+                 --dataset ${DATASET}
                  --data_path ${DATA_PATH}
                  --net ${NET}
                  --net_index $((NET_INDEX))
