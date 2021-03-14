@@ -8,12 +8,10 @@ import os
 class AbstractLearner(ABC):
     def __init__(self, dataset, net, args):
         self.dataset = dataset
-        self.net = net.cuda() # self.device = torch.device('cuda', args.local_rank); self.net = net.to(self.device)
+        self.net = net.cuda(args.local_rank)
+        if args.nproc > 1:
+            self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
         self.args = args
-        #if self.args.nproc > 1:
-        #    self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
-
-        self.loss_fn = self._setup_loss_fn()
 
         # logs save in text and visualize in tensorboard
         self.recoder = Writer(self.args.log_dir)
