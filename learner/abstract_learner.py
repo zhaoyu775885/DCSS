@@ -10,8 +10,8 @@ class AbstractLearner(ABC):
         self.dataset = dataset
         self.net = net.cuda() # self.device = torch.device('cuda', args.local_rank); self.net = net.to(self.device)
         self.args = args
-        if self.args.nproc > 1:
-            self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
+        #if self.args.nproc > 1:
+        #    self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
 
         self.loss_fn = self._setup_loss_fn()
 

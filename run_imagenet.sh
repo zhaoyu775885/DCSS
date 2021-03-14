@@ -2,19 +2,20 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-export CUDA_VISIBLE_DEVICES='0'
+N_GPU=2
+export CUDA_VISIBLE_DEVICES='0,1'
 
-# select from: ['cifar10', 'cifar100']
+# imagenet ilsvrc2012
 DATASET='imagenet'
 DATA_PATH='/home/zhaoyu/Data/Imagenet/ILSVRC2012'
 
 # network model type and index
-NET='mobilenet'
-NET_INDEX='2'
+NET='resnet'
+NET_INDEX='18'
 
 # training parameters
 NUM_EPOCH=120
-BATCH_SIZE=128
+BATCH_SIZE=256
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9
@@ -79,7 +80,18 @@ fi
 
 BASIC_ARGUMENTS+=${DST_ARGUMENTS}
 BASIC_ARGUMENTS+=${PRUNE_ARGUMENTS}
-echo python -u main.py ${BASIC_ARGUMENTS}
 TIME_TAG=`date +"%Y%m%d_%H%M"`
 LOG_FILE=${LOG_DIR}/${TIME_TAG}.txt
-python -u main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+
+
+if ((${N_GPU} > 1)); then
+  CMD="python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS}"
+  echo ${CMD}
+  echo ${CMD} > ${LOG_FILE}
+  python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+else
+  CMD="python -u main.py ${BASIC_ARGUMENTS}"
+  echo ${CMD}
+  echo ${CMD} > ${LOG_FILE}
+  python -u main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+fi

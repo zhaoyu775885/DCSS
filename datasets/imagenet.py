@@ -29,13 +29,11 @@ class ImageNet:
 
         print('train' if is_train else 'valid', 'samples: ', len(imagenet_dataset))
 
-        # if valid:
-        #     dataset_train, dataset_valid = torch.utils.data.random_split(cifar_dataset, [45000, 5000])
-        #     train_loader = torch.utils.data.DataLoader(dataset_train, batch_size=batch_size, drop_last=True,
-        #                                                shuffle=is_train, num_workers=16)
-        #     valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=batch_size, drop_last=True,
-        #                                                shuffle=is_train, num_workers=16)
-        #     return train_loader, valid_loader
+        if torch.cuda.device_count() > 1:
+            print('distributed parallelism')
+            sampler = torch.utils.data.distributed.DistributedSampler(imagenet_dataset)#, shuffle=is_train)
+            return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=False,
+                                              drop_last=False, sampler=sampler, num_workers=16, pin_memory=True)
 
         return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=is_train, num_workers=16, pin_memory=True)
 

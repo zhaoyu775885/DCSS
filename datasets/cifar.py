@@ -39,6 +39,7 @@ class Cifar():
             return train_loader, valid_loader
 
         if torch.cuda.device_count() > 1:
+            print('distributed parallelism')
             sampler = torch.utils.data.distributed.DistributedSampler(cifar_dataset, shuffle=is_train)
             return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=False,
                                                drop_last=False, sampler=sampler, num_workers=8)
