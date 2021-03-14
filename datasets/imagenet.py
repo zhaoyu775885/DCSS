@@ -33,9 +33,9 @@ class ImageNet:
             print('distributed parallelism')
             sampler = torch.utils.data.distributed.DistributedSampler(imagenet_dataset)#, shuffle=is_train)
             return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=False,
-                                              drop_last=False, sampler=sampler, num_workers=16, pin_memory=True)
+                                              drop_last=False, sampler=sampler, num_workers=4, pin_memory=True)
 
-        return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=is_train, num_workers=16, pin_memory=True)
+        return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=is_train, num_workers=8, pin_memory=True)
 
 
 if __name__ == '__main__':
