@@ -92,7 +92,6 @@ class FullLearner(AbstractLearner):
                     speed = int(self.args.print_steps * self.batch_size_train / time_step) * self.args.nproc
                     print(i + 1, ': lr={0:.1e} | acc={1:5.2f} | loss={2:5.2f} | speed={3} pic/s'.format(
                         self.opt.param_groups[0]['lr'], accuracy * 100, loss, speed))
-                    print(time_step, self.batch_size_train, self.args.nproc)
                     time_prev = timer()
             self.recoder.update(epoch)
             self.lr_scheduler.step()
