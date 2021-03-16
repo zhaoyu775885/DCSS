@@ -6,7 +6,7 @@ import datasets.search_imagenet as dataset_search
 from timeit import default_timer as timer
 
 
-"""
+
 class ImageNet:
     def __init__(self, data_dir):
         self.dataset_fn_base = torchvision.datasets.ImageNet
@@ -38,11 +38,10 @@ class ImageNet:
             return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=False, drop_last=False,
                                                sampler=sampler, pin_memory=True, num_workers=4*torch.cuda.device_count())
 
-        return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=is_train, pin_memory=True,
-                                           num_workers=4*torch.cuda.device_count())
+        return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=is_train, drop_last=False,
+                                           pin_memory=True, num_workers=4*torch.cuda.device_count())
+
 """
-
-
 class ImageNet:
     def __init__(self, data_dir):
         self.dataset_fn_base = torchvision.datasets.ImageNet
@@ -77,6 +76,8 @@ class ImageNet:
             return train_loader
 
         return train_loader
+"""
+
 
 if __name__ == '__main__':
     torch.distributed.init_process_group(backend='nccl')

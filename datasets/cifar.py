@@ -41,10 +41,11 @@ class Cifar():
         if torch.cuda.device_count() > 1:
             print('distributed parallelism')
             sampler = torch.utils.data.distributed.DistributedSampler(cifar_dataset, shuffle=is_train)
-            return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=False,
-                                               drop_last=False, sampler=sampler, num_workers=8)
-        return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=is_train,
-                                           drop_last=False, num_workers=16)
+            return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=False, drop_last=False,
+                                               sampler=sampler, pin_memory=True,
+                                               num_workers=4 * torch.cuda.device_count())
+        return torch.utils.data.DataLoader(cifar_dataset, batch_size=batch_size, shuffle=is_train, drop_last=False,
+                                           pin_memory=True, num_workers=4 * torch.cuda.device_count())
 
 
 class Cifar10(Cifar):

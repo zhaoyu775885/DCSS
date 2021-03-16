@@ -15,7 +15,12 @@ from nets.EDSR_gated import EDSRChannelList, EDSRLite
 
 class DcpsSRLearner(AbstractLearner):
     def __init__(self, dataset, net, device, args):
-        super(DcpsSRLearner, self).__init__(dataset, net, device, args)
+        super(DcpsSRLearner, self).__init__(dataset, net, args)
+
+        self.device = device
+
+        self.forward = self.net if torch.cuda.device_count() == 1 else \
+            torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[args.local_rank])
 
         self.batch_size_train = self.args.batch_size
         self.batch_size_test = self.args.batch_size_test
@@ -23,7 +28,6 @@ class DcpsSRLearner(AbstractLearner):
         self.test_loader = self._build_dataloader(self.batch_size_test, is_train=False, search=True)
 
         self.init_lr = self.batch_size_train / self.args.std_batch_size * self.args.std_init_lr
-        print(self.init_lr)
 
         # setup optimizer
         self.opt_warmup = self._setup_optimizer_warmup()
@@ -34,6 +38,8 @@ class DcpsSRLearner(AbstractLearner):
 
         self.opt_search = self._setup_optimizer_search()
         self.lr_scheduler_search = self._setup_lr_scheduler_search()
+
+        self.loss_fn = self._setup_loss_fn()
 
     def _setup_loss_fn(self):
         return nn.L1Loss()

@@ -82,7 +82,8 @@ class FullLearner(AbstractLearner):
                     accuracy, loss, kd_loss = self.metrics(logits, labels, trg_logits)
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'accuracy': accuracy})
 
-                torch.distributed.barrier()
+                if self.args.nproc > 1:
+                    torch.distributed.barrier()
                 self.opt.zero_grad(set_to_none=True)
                 loss.backward()
                 self.opt.step()

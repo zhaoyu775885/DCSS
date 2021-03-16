@@ -7,8 +7,8 @@ import os
 class DIV2K():
     def __init__(self, data_dir, scale, enlarge, length):
         self.data_dir = data_dir
-        self.data_path_train = os.path.join(self.data_dir, 'SR_X2.hdf5')
-        self.data_path_test = os.path.join(self.data_dir, 'X2Test.hdf5')
+        self.data_path_train = os.path.join(self.data_dir, 'SR_X{0}.hdf5'.format(scale))
+        self.data_path_test = os.path.join(self.data_dir, 'X{0}Test.hdf5'.format(scale))
         self.scale = scale
         self.enlarge = enlarge
         self.length = length
