@@ -9,8 +9,8 @@ class AbstractLearner(ABC):
     def __init__(self, dataset, net, args):
         self.dataset = dataset
         self.net = net.cuda(args.local_rank)
-        # if args.nproc > 1:
-        #     self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
+        if args.nproc > 1:
+            self.net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.net)
         self.args = args
 
         # logs save in text and visualize in tensorboard
