@@ -16,14 +16,14 @@ export CUDA_VISIBLE_DEVICES='1'
 
 # single image super resolution, SISR dataset
 DATASET='DIV2K'
-DATA_PATH='/path/to/data'
+DATA_PATH='/home/zhaoyu/Data/DIV2K/'
 
 # network model type and index
 NET='EDSR'
 
 # training parameters
 NUM_EPOCH=120
-SCALE=2
+SCALE=4
 BATCH_SIZE=16
 BATCH_SIZE_TEST=1
 STD_BATCH_SIZE=16
@@ -50,7 +50,7 @@ DIR_ARGUMENTS=" --full_dir ${FULL_DIR} --log_dir ${LOG_DIR} "
 BASIC_ARGUMENTS+=${DIR_ARGUMENTS}
 
 # prune switch
-PRUNE_FLAG=${FALSE}
+PRUNE_FLAG=${TRUE}
 PRUNE_ARGUMENTS=" --prune_flag ${PRUNE_FLAG} "
 if [ ${PRUNE_FLAG} == ${TRUE} ]; then
 	SLIM_DIR=${WORKROOT}/${NET_DATASET}/slim

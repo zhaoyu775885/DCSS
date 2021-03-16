@@ -2,8 +2,8 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-N_GPU=2
-export CUDA_VISIBLE_DEVICES='0,1'
+N_GPU=1
+export CUDA_VISIBLE_DEVICES='0'
 
 # select from: ['cifar10', 'cifar100']
 DATASET='cifar100'
@@ -15,7 +15,7 @@ NET_INDEX=20
 
 # training parameters
 NUM_EPOCH=600
-BATCH_SIZE=128
+BATCH_SIZE=256
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9
@@ -90,7 +90,8 @@ TIME_TAG=`date +"%Y%m%d_%H%M"`
 LOG_FILE=${LOG_DIR}/${TIME_TAG}.txt
 #echo python -u main.py ${BASIC_ARGUMENTS}
 
-if ((${N_GPU} > 1)); then
+if (( ${N_GPU} > 1 )); then
+  echo "fuck u"
   CMD="python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS}"
   echo ${CMD}
   echo ${CMD} > ${LOG_FILE}

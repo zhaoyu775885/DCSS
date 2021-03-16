@@ -1,8 +1,9 @@
 #! /bin/bash
 
-for ((i=0;i<=10;i++))
+n_loop=5
+for ((i=1;i<=n_loop;i++))
 do
-	echo $i
+	echo $i-th "run"
 	./run_cifar.sh
 done
 

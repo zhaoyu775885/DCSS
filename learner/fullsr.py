@@ -11,7 +11,12 @@ import os
 
 class FullSRLearner(AbstractLearner):
     def __init__(self, dataset, net, device, args):
-        super(FullSRLearner, self).__init__(dataset, net, device, args)
+        super(FullSRLearner, self).__init__(dataset, net, args)
+        self.device = device
+
+        self.forward = self.net if torch.cuda.device_count() == 1 else \
+            torch.nn.parallel.DistributedDataParallel(self.net, device_ids=[args.local_rank])
+
         self.batch_size_train = self.args.batch_size
         self.batch_size_test = self.args.batch_size_test
         self.train_loader = self._build_dataloader(self.batch_size_train, is_train=True)
@@ -20,6 +25,8 @@ class FullSRLearner(AbstractLearner):
         self.init_lr = self.batch_size_train / self.args.std_batch_size * self.args.std_init_lr
         self.opt = self._setup_optimizer()
         self.lr_scheduler = self._setup_lr_scheduler()
+
+        self.loss_fn = self._setup_loss_fn()
 
     def _setup_loss_fn(self):
         return nn.L1Loss()
@@ -54,7 +61,6 @@ class FullSRLearner(AbstractLearner):
             self.recoder.init({'loss': 0, 'lr': self.opt.param_groups[0]['lr']})
 
             for i, data in enumerate(self.train_loader):
-                # print(i)
                 lr, hr = data[0].to(self.device), data[1].to(self.device)
                 predict = self.forward(lr)
                 loss = self.metrics(predict, hr)
