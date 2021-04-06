@@ -20,7 +20,6 @@ class FullLearner(AbstractLearner):
         self.batch_size_test = self.args.batch_size_test
         self.train_loader = self._build_dataloader(self.batch_size_train, is_train=True)
         self.test_loader = self._build_dataloader(self.batch_size_test, is_train=False)
-        self.sampler = self.dataset.get_sampler()
 
         print(self.args.batch_size, self.args.std_batch_size, self.args.std_init_lr)
         self.init_lr = self.batch_size_train / self.args.std_batch_size * self.args.std_init_lr * self.args.nproc
@@ -31,6 +30,7 @@ class FullLearner(AbstractLearner):
         self.teacher = teacher
 
         cudnn.benchmark = True
+
 
     def _setup_loss_fn(self):
         return nn.CrossEntropyLoss().cuda(self.args.local_rank)
@@ -74,7 +74,7 @@ class FullLearner(AbstractLearner):
             time_prev = timer()
             self.recoder.init({'loss': 0, 'accuracy': 0, 'lr': self.opt.param_groups[0]['lr']})
 
-            self.sampler.set_epoch(epoch)
+            self.train_loader.sampler.set_epoch(epoch)
 
             for i, (inputs, labels) in enumerate(self.train_loader):
                 adjust_learning_rate(self.args, self.init_lr, self.opt, epoch, i, train_loader_len)
@@ -108,7 +108,7 @@ class FullLearner(AbstractLearner):
             #self.lr_scheduler.step()
 
             if (epoch + 1) % self.args.save_epochs == 0:
-                self.test()
+                # self.test()
                 if self.args.local_rank == 0:
                     self.save_model(os.path.join(save_path, 'model_'+str(epoch+1)+'.pth'))
 
