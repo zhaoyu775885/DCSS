@@ -81,8 +81,6 @@ class FullLearner(AbstractLearner):
 
                 inputs = inputs.cuda(self.args.local_rank, non_blocking=True)
                 labels = labels.cuda(self.args.local_rank, non_blocking=True)
-                print(labels)
-                break
 
                 logits = self.forward(inputs)
                 if self.teacher is None:
