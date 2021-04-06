@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch import Tensor
 from typing import Callable, Any, Optional, List
+from thop import profile
 
 
 __all__ = ['MobileNetV2', 'mobilenet_v2']
@@ -208,3 +209,13 @@ def mobilenet_v2(pretrained: bool = False, progress: bool = True, **kwargs: Any)
     model = MobileNetV2(**kwargs)
 
     return model
+
+
+if __name__ == '__main__':
+    net = mobilenet_v2()
+    x = torch.zeros([1, 3, 224, 224])
+    y = net(x)
+
+    print(net)
+    macs, params = profile(net, inputs=(x, ))
+    print(macs, params)

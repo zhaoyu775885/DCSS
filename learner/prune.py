@@ -12,8 +12,10 @@ from nets.resnet_lite import ResNetChannelList
 
 
 class DcpsLearner(AbstractLearner):
-    def __init__(self, dataset, net, device, args, teacher=None):
-        super(DcpsLearner, self).__init__(dataset, net, device, args)
+    def __init__(self, dataset, net, args, teacher=None):
+        super(DcpsLearner, self).__init__(dataset, net, args)
+
+        self.forward = self.net
 
         self.batch_size_train = self.args.batch_size
         self.batch_size_test = self.args.batch_size_test
@@ -87,11 +89,11 @@ class DcpsLearner(AbstractLearner):
         return accuracy, loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
-        tau = self.train_search(n_epoch=self.args.num_epoch_search,
-                                load_path=self.args.warmup_dir,
-                                save_path=self.args.search_dir)
-        #tau = 0.1
+        #self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        #tau = self.train_search(n_epoch=self.args.num_epoch_search,
+        #                        load_path=self.args.warmup_dir,
+        #                        save_path=self.args.search_dir)
+        tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
@@ -210,7 +212,7 @@ class DcpsLearner(AbstractLearner):
 
         self.net.eval()
         data = next(iter(self.train_loader))
-        inputs, labels = data[0].to(self.device), data[1].to(self.device)
+        inputs, labels = data[0].cuda(non_blocking=True), data[1].cuda(non_blocking=True)
         outputs, prob_list, flops, flops_list = self.forward(inputs, tau=tau, noise=False)
         if torch.cuda.device_count() > 1:
             flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
@@ -227,7 +229,7 @@ class DcpsLearner(AbstractLearner):
         
 
         net = ResNetL(self.args.net_index, self.dataset.n_class, channel_list_prune)
-        full_learner = FullLearner(self.dataset, net, device=self.device, args=self.args, teacher=self.teacher)
+        full_learner = FullLearner(self.dataset, net, args=self.args, teacher=self.teacher)
         if torch.cuda.device_count() == 1:
             # only work for single GPU mode
             print('FLOPs:', full_learner.cnt_flops())
@@ -239,7 +241,7 @@ class DcpsLearner(AbstractLearner):
         flops_list, prob_list = [], []
         with torch.no_grad():
             for i, data in enumerate(self.test_loader):
-                images, labels = data[0].to(self.device), data[1].to(self.device)
+                images, labels = data[0].cuda(non_blocking=True), data[1].cuda(non_blocking=True)
                 outputs, prob_list, flops, flops_list = self.forward(images, tau=tau, noise=False)
                 if torch.cuda.device_count() > 1:
                     flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)

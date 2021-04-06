@@ -12,6 +12,7 @@ class ImageNet:
         self.dataset_fn_search = dataset_search.ImageNetSearch
         self.data_dir = data_dir
         self.n_class = 1000
+        self.sampler = None
 
     def build_dataloader(self, batch_size, is_train=True, valid=False, search=False):
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -33,12 +34,17 @@ class ImageNet:
 
         if torch.cuda.device_count() > 1:
             print('distributed parallelism')
-            sampler = torch.utils.data.distributed.DistributedSampler(imagenet_dataset, shuffle=is_train)
-            return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=False, drop_last=False,
-                                               sampler=sampler, pin_memory=True, num_workers=4*torch.cuda.device_count())
+            self.sampler = torch.utils.data.distributed.DistributedSampler(imagenet_dataset, shuffle=is_train)
+            return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=(self.sampler is None), drop_last=False,
+                                               sampler=self.sampler, pin_memory=True, num_workers=4*torch.cuda.device_count())
 
         return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=is_train, drop_last=False,
                                            pin_memory=True, num_workers=4*torch.cuda.device_count())
+
+    def get_sampler(self):
+        if self.sampler is None:
+            print('ERROR! Sampler is not initialized')
+        return self.sampler
 
 """
 class ImageNet:
