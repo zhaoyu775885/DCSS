@@ -83,10 +83,11 @@ class DcpsSRLearner(AbstractLearner):
         return loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
-        tau = self.train_search(n_epoch=self.args.num_epoch_search,
-                                load_path=self.args.warmup_dir,
-                                save_path=self.args.search_dir)
+        # self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        # tau = self.train_search(n_epoch=self.args.num_epoch_search,
+        #                         load_path=self.args.warmup_dir,
+        #                         save_path=self.args.search_dir)
+        tau = 0.1
         self.train_prune(tau=tau, n_epoch=n_epoch,
                          load_path=self.args.search_dir,
                          save_path=save_path)
@@ -197,7 +198,7 @@ class DcpsSRLearner(AbstractLearner):
         chn_list_prune = get_prune_list(channel_list, prob_list, dcfg=dcfg)
         print(chn_list_prune)
 
-        net = EDSRLite(16, chn_list_prune, num_colors=3, scale=2, res_scale=1)
+        net = EDSRLite(16, chn_list_prune, num_colors=3, scale=self.args.scale, res_scale=1)
 
         full_learner = FullSRLearner(self.dataset, net, device=self.device, args=self.args)
         print('FLOPs:', full_learner.cnt_flops())
@@ -237,7 +238,7 @@ def get_prune_list(channel_list_full, prob_list, dcfg, expand_rate=0):
     dnas_conv = lambda input, output: DNAS.Conv2d(input, output, 1, 1, 1, False, dcfg=dcfg)
     conv = dnas_conv(chn_input_full, chn_output_full)
     chn_output_prune = int(np.round(
-        min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
+        min(torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item(), chn_output_full)
     ))
     chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
     prune_list.append(chn_output_prune)
@@ -250,7 +251,7 @@ def get_prune_list(channel_list_full, prob_list, dcfg, expand_rate=0):
             conv = dnas_conv(chn_input_full, chn_output_full)
             # print(prob_list[idx], conv.out_plane_list, torch.dot(prob_list[idx], conv.out_plane_list).item())
             chn_output_prune = int(np.round(
-                min(torch.dot(prob_list[idx], conv.out_plane_list).item(), chn_output_full)
+                min(torch.dot(prob_list[idx].to('cpu'), conv.out_plane_list).item(), chn_output_full)
             ))
             chn_output_prune += int(np.ceil(expand_rate * (chn_output_full - chn_output_prune)))
             # block_prune_list.append(chn_output_prune)
