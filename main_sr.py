@@ -29,6 +29,7 @@ def main():
     parser.add_argument('--warmup_dir', type=str, help='Index')
     parser.add_argument('--search_dir', type=str, help='Index')
     parser.add_argument('--local_rank', default=0, type=int, help='node rank for distributed training')
+    parser.add_argument('--nproc', default=1, type=int, help='number of processes')
 
     args = parser.parse_args()
 

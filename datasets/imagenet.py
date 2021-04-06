@@ -35,16 +35,13 @@ class ImageNet:
         if torch.cuda.device_count() > 1:
             print('distributed parallelism')
             self.sampler = torch.utils.data.distributed.DistributedSampler(imagenet_dataset, shuffle=is_train)
-            return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=(self.sampler is None), drop_last=False,
-                                               sampler=self.sampler, pin_memory=True, num_workers=4*torch.cuda.device_count())
+            return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=(self.sampler is None),
+                                               drop_last=False, sampler=self.sampler, pin_memory=True,
+                                               num_workers=4*torch.cuda.device_count())
 
         return torch.utils.data.DataLoader(imagenet_dataset, batch_size=batch_size, shuffle=is_train, drop_last=False,
                                            pin_memory=True, num_workers=4*torch.cuda.device_count())
 
-    def get_sampler(self):
-        if self.sampler is None:
-            print('ERROR! Sampler is not initialized')
-        return self.sampler
 
 """
 class ImageNet:
@@ -89,13 +86,21 @@ if __name__ == '__main__':
 
     dataset = '/home/zhaoyu/Data/Imagenet/ILSVRC2012'
     dataset = ImageNet(dataset)
+    sampler = dataset.get_sampler()
 
     train_dataloader = dataset.build_dataloader(256)
 
     time_prev = timer()
-    for i, (images, target) in enumerate(train_dataloader):
-        if (i+1) % 10 == 0:
-            time_step = timer() - time_prev
-            print(i+1, ':', time_step)
-            time_prev = timer()
+
+    for epoch in range(10):
+        sampler.set_epoch(epoch)
+
+        for i, (images, target) in enumerate(train_dataloader):
+            print(epoch)
+            print(target)
+            break
+            # if (i+1) % 10 == 0:
+            #     time_step = timer() - time_prev
+            #     print(i+1, ':', time_step)
+            #     time_prev = timer()
 
