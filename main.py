@@ -46,7 +46,7 @@ def main():
     parser.add_argument('--teacher_dir', type=str, help='Index')
     parser.add_argument('--local_rank', default=0, type=int, help='node rank for distributed training')
     parser.add_argument('--nproc', default=1, type=int, help='number of processes')
-    parser.add_argument('--save_epochs', default=10, type=int, help='save checkpoint every "save_epochs"')
+    parser.add_argument('--save_epochs', default=5, type=int, help='save checkpoint every "save_epochs"')
     parser.add_argument('--print_steps', default=100, type=int, help='print training info every "print_steps"')
 
     args = parser.parse_args()
