@@ -20,7 +20,7 @@ def adjust_learning_rate(args, init_lr, optimizer, epoch, iteration, num_iter):
         raise ValueError('Unknown lr mode {}'.format(args.lr_decay))
 
     if epoch < warmup_epoch:
-        lr = init_lr * current_iter / warmup_iter
+        lr = 0.25*init_lr + 0.75*init_lr * current_iter / warmup_iter
 
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr

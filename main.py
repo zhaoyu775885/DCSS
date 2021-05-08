@@ -27,7 +27,7 @@ def main():
     parser.add_argument('--std_batch_size', default=128, type=int, help='Norm Batch Size')
     parser.add_argument('--std_init_lr', default=1e-1, type=float, help='Norm Init Lr')
     parser.add_argument('--lr_decay', default='cos', type=str, help='learning rate decay type')
-    parser.add_argument('--weight_decay', default=5e-4, type=float, help='Weight Decay')
+    parser.add_argument('--weight_decay', default=4e-5, type=float, help='Weight Decay')
     parser.add_argument('--momentum', default=0.9, type=float, help='Momentum for SGD')
     parser.add_argument('--dst_flag', default=0, type=int, help='Dst Flag')
     parser.add_argument('--prune_flag', default=0, type=int, help='Prune Flag')
@@ -46,7 +46,7 @@ def main():
     parser.add_argument('--teacher_dir', type=str, help='Index')
     parser.add_argument('--local_rank', default=0, type=int, help='node rank for distributed training')
     parser.add_argument('--nproc', default=1, type=int, help='number of processes')
-    parser.add_argument('--save_epochs', default=5, type=int, help='save checkpoint every "save_epochs"')
+    parser.add_argument('--save_epochs', default=10, type=int, help='save checkpoint every "save_epochs"')
     parser.add_argument('--print_steps', default=100, type=int, help='print training info every "print_steps"')
 
     args = parser.parse_args()

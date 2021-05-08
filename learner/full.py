@@ -29,7 +29,7 @@ class FullLearner(AbstractLearner):
 
         self.teacher = teacher
 
-        cudnn.benchmark = True
+        cudnn.benchmark = False
 
 
     def _setup_loss_fn(self):
@@ -74,7 +74,8 @@ class FullLearner(AbstractLearner):
             time_prev = timer()
             self.recoder.init({'loss': 0, 'accuracy': 0, 'lr': self.opt.param_groups[0]['lr']})
 
-            self.train_loader.sampler.set_epoch(epoch+1)
+            if torch.cuda.device_count() > 1:
+                self.train_loader.sampler.set_epoch(epoch+1)
 
             for i, (inputs, labels) in enumerate(self.train_loader):
                 adjust_learning_rate(self.args, self.init_lr, self.opt, epoch, i, train_loader_len)

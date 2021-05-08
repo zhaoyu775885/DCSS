@@ -91,14 +91,13 @@ LOG_FILE=${LOG_DIR}/${TIME_TAG}.txt
 #echo python -u main.py ${BASIC_ARGUMENTS}
 
 if (( ${N_GPU} > 1 )); then
-  echo "fuck u"
   CMD="python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS}"
   echo ${CMD}
   echo ${CMD} > ${LOG_FILE}
-  python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+  python -u -m torch.distributed.launch --nproc_per_node ${N_GPU} main.py ${BASIC_ARGUMENTS} 2>&1 | tee -a ${LOG_FILE}
 else
   CMD="python -u main.py ${BASIC_ARGUMENTS}"
   echo ${CMD}
   echo ${CMD} > ${LOG_FILE}
-  python -u main.py ${BASIC_ARGUMENTS} 2>&1 | tee ${LOG_FILE}
+  python -u main.py ${BASIC_ARGUMENTS} 2>&1 | tee -a ${LOG_FILE}
 fi

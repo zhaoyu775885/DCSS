@@ -167,7 +167,7 @@ class MobileNetV2(nn.Module):
 
         # building classifier
         self.classifier = nn.Sequential(
-            nn.Dropout(0.2),
+            #nn.Dropout(0.2),
             nn.Linear(self.last_channel, num_classes),
         )
 
