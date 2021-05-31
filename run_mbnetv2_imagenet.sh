@@ -2,8 +2,8 @@ FALSE=0
 TRUE=1
 
 # assign global devices
-N_GPU=2
-export CUDA_VISIBLE_DEVICES='0,1'
+N_GPU=1
+export CUDA_VISIBLE_DEVICES='0'
 
 # imagenet ilsvrc2012
 DATASET='imagenet'
@@ -14,11 +14,11 @@ NET='mobilenet'
 NET_INDEX='2'
 
 # training parameters
-NUM_EPOCH=300
+NUM_EPOCH=250
 WARMUP_FLAG=${TRUE}
 BATCH_SIZE=256
 STD_BATCH_SIZE=256
-STD_INIT_LR=1e-1
+STD_INIT_LR=5e-2
 MOMENTUM=0.9
 WEIGHT_DECAY=4e-5
 
