@@ -26,7 +26,7 @@ class DcpConfig():
         return '{0}; {1}; {2}'.format(self.n_param, self.split_type, self.reuse_gate)
 
 
-def assign_gate(n_seg, reuse_gate=None, state='uniform'):
+def assign_gate(n_seg, reuse_gate=None, state='nuniform'):
     if reuse_gate is not None:
         return reuse_gate
     return torch.zeros([n_seg], requires_grad=True) if state == 'uniform' else \

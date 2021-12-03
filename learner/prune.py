@@ -89,7 +89,7 @@ class DcpsLearner(AbstractLearner):
         return accuracy, loss, loss_with_flops
 
     def train(self, n_epoch=250, save_path='./models/slim'):
-        #self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
+        self.train_warmup(n_epoch=self.args.num_epoch_warmup, save_path=self.args.warmup_dir)
         #tau = self.train_search(n_epoch=self.args.num_epoch_search,
         #                        load_path=self.args.warmup_dir,
         #                        save_path=self.args.search_dir)
@@ -113,10 +113,14 @@ class DcpsLearner(AbstractLearner):
             time_prev = timer()
             self.recoder.init({'loss': 0, 'accuracy': 0, 'lr': self.opt_warmup.param_groups[0]['lr']})
             for i, data in enumerate(self.train_loader):
-                inputs, labels = data[0].to(self.device), data[1].to(self.device)
-                outputs, _, flops, flops_list = self.forward(inputs, tau=1.0, noise=False)
+                inputs = data[0].cuda(self.args.local_rank, non_blocking=True)
+                labels = data[1].cuda(self.args.local_rank, non_blocking=True)
+                outputs, prob_list, flops, flops_list = self.forward(inputs, tau=1.0, noise=False)
                 if torch.cuda.device_count() > 1:
-                    flops, flops_list = flops[0], self.squeeze(flops_list)
+                    flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
+                display_info(flops_list, prob_list)
+                print(flops, flops_list)
+                exit(1)
                 accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'accuracy': accuracy})
                 self.opt_warmup.zero_grad()
