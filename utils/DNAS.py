@@ -7,11 +7,13 @@ import copy
 TYPE_A = 1
 TYPE_B = 2
 
+
 def entropy(prob):
-    p = prob*(1-2e-10) + 1e-10
+    p = prob * (1 - 2e-10) + 1e-10
     return -torch.dot(p, torch.log(p))
 
-class DcpConfig():
+
+class DcpConfig:
     def __init__(self, n_param=1, split_type=TYPE_A, reuse_gate=None):
         self.n_param = n_param
         self.split_type = split_type
@@ -26,7 +28,7 @@ class DcpConfig():
         return '{0}; {1}; {2}'.format(self.n_param, self.split_type, self.reuse_gate)
 
 
-def assign_gate(n_seg, reuse_gate=None, state='nuniform'):
+def assign_gate(n_seg, reuse_gate=None, state='uniform'):
     if reuse_gate is not None:
         return reuse_gate
     return torch.zeros([n_seg], requires_grad=True) if state == 'uniform' else \
@@ -66,13 +68,13 @@ class Conv2d(nn.Module):
             assert self.out_planes >= self.n_seg
 
         if in_n_seg <= self.in_planes:
-            #self.in_plane_list = torch.Tensor(self.__calc_seg_list(self.in_planes, in_n_seg, in_seg_sz)).cuda()
+            # self.in_plane_list = torch.Tensor(self.__calc_seg_list(self.in_planes, in_n_seg, in_seg_sz)).cuda()
             self.in_plane_list = nn.Parameter(torch.Tensor(self.__calc_seg_list(self.in_planes, in_n_seg, in_seg_sz)),
                                               requires_grad=False)
         self.out_plane_list = self.__calc_seg_list(self.out_planes, self.n_seg, self.seg_sz)
         self.mask = self.__init_mask()
         self.gate = self.__init_gate(dcfg.reuse_gate)
-        #self.out_plane_list = torch.Tensor(self.out_plane_list).cuda()
+        # self.out_plane_list = torch.Tensor(self.out_plane_list).cuda()
         self.out_plane_list = nn.Parameter(torch.Tensor(self.out_plane_list), requires_grad=False)
         self.device = None
 
@@ -101,19 +103,21 @@ class Conv2d(nn.Module):
 
     def __cnt_flops(self, p_in, p_out, out_size):
         h, w = out_size
+
         def average(p, vals):
             return torch.dot(p, vals)
+
         cin_avg = self.in_planes if p_in is None else average(p_in, self.in_plane_list)
         cout_avg = average(p_out, self.out_plane_list)
-        return cin_avg*cout_avg*h*w*self.kernel_size*self.kernel_size
+        return cin_avg * cout_avg * h * w * self.kernel_size * self.kernel_size
 
     def __gumbel_softmax(self, tau=1, noise=False):
         if noise:
-            #uniform_noise = torch.rand(self.n_seg).cuda()
+            # uniform_noise = torch.rand(self.n_seg).cuda()
             uniform_noise = torch.rand(self.n_seg).to(self.__device())
             gumbel_noise = -torch.log(-torch.log(uniform_noise))
-            return F.softmax((self.gate+gumbel_noise) / tau, dim=0)
-        return F.softmax((self.gate)/tau, dim=0)
+            return F.softmax((self.gate + gumbel_noise) / tau, dim=0)
+        return F.softmax((self.gate) / tau, dim=0)
 
     def forward(self, x, tau=1, noise=False, reuse_prob=None, p_in=None):
         y = self.conv(x)
@@ -190,7 +194,7 @@ class Linear(nn.Module):
 
     def __cnt_flops(self, p_in):
         cin_avg = self.in_features if p_in is None else torch.dot(p_in, self.in_plane_list)
-        return cin_avg*self.out_features
+        return cin_avg * self.out_features
 
     def forward(self, x, p_in=None):
         y = self.linear(x)
