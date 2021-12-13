@@ -2,6 +2,39 @@ import torch
 import torch.nn as nn
 
 
+class PatchEmbedding(nn.Module):
+    def __init__(self, image_size, patch_size, in_channels, embed_dim, dropout=0.2):
+        super(PatchEmbedding, self).__init__()
+        assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
+        num_patch = (image_size // patch_size) ** 2
+        self.patch_embedding = nn.Conv2d(in_channels=in_channels,
+                                         out_channels=embed_dim,
+                                         kernel_size=patch_size,
+                                         stride=patch_size)
+        self.position_embedding = nn.Parameter(torch.empty([1, num_patch + 1, embed_dim]))
+        self.cls_token = nn.Parameter(torch.empty([1, 1, embed_dim]))
+        self.dropout = nn.Dropout(dropout)
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        nn.init.xavier_uniform_(self.patch_embedding.weight)
+        nn.init.xavier_uniform_(self.position_embedding)
+        nn.init.xavier_uniform_(self.cls_token)
+
+    def forward(self, x):
+        cls_tokens = self.cls_token.expand((x.shape[0], -1, -1))
+        x = self.patch_embedding(x)
+        x = x.flatten(2)
+        x = x.permute([0, 2, 1])
+        x = torch.concat((cls_tokens, x), axis=1)
+        embedding = x + self.position_embedding
+        embedding = self.dropout(embedding)
+        return embedding
+
+
+
+
+
 class ViT(nn.Module):
     def __init__(self, image_size: int, patch_size: int, num_classes: int,
                  dim: int, depth: int, heads: int, mlp_dim: int, pool='cls',
