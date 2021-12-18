@@ -1,6 +1,6 @@
-import os
-import sys
-import argparse
+import os 
+import sys 
+import argparse 
 import torch
 from datasets.cifar import Cifar10, Cifar100
 from datasets.imagenet import ImageNet
@@ -9,7 +9,7 @@ from nets.mobilenetv2 import mobilenet_v2
 from nets.resnet_lite import ResNetLite
 from nets.resnet_gated import ResNetGated
 from learner.prune import DcpsLearner
-from learner.full import FullLearner
+from learner.full import FullLearner, set_seed
 from learner.distiller import Distiller
 
 

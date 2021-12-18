@@ -8,6 +8,11 @@ from utils.writer import reduce_mean
 from utils.adjustlr import adjust_learning_rate
 import torch.backends.cudnn as cudnn
 
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    cudnn.deterministic = True
+
 
 class FullLearner(AbstractLearner):
     def __init__(self, dataset, net, args, teacher=None):
