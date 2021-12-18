@@ -36,7 +36,6 @@ class FullLearner(AbstractLearner):
 
         cudnn.benchmark = False
 
-
     def _setup_loss_fn(self):
         return nn.CrossEntropyLoss().cuda(self.args.local_rank)
 

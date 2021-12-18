@@ -118,9 +118,6 @@ class DcpsLearner(AbstractLearner):
                 outputs, prob_list, flops, flops_list = self.forward(inputs, tau=1.0, noise=False)
                 if torch.cuda.device_count() > 1:
                     flops, prob_list, flops_list = flops[0], self.squeeze(prob_list), self.squeeze(flops_list)
-                display_info(flops_list, prob_list)
-                print(flops, flops_list)
-                exit(1)
                 accuracy, loss, loss_with_flops = self.metrics(outputs, labels, flops)
                 self.recoder.add_info(labels.size(0), {'loss': loss, 'accuracy': accuracy})
                 self.opt_warmup.zero_grad()

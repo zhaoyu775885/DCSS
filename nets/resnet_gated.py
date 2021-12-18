@@ -19,6 +19,7 @@ cfg = {
 _BATCH_NORM_DECAY = 0.01
 _EPSILON = 1e-5
 
+
 class ResidualBlockGated(nn.Module):
     """
     out_planes_list contains the corresponding number of convs.
@@ -210,6 +211,7 @@ class ResNet(nn.Module):
         flops_list += [fc_flops]
         return x, prob_list, torch.sum(torch.stack(flops_list)), flops_list
 
+
 # def ResNet20Gated(n_classes):
 #     dcfg = DNAS.DcpConfig(n_param=8, split_type=DNAS.TYPE_A, reuse_gate=None)
 #     channel_list_20 = ResNetChannelList(20)
@@ -234,7 +236,6 @@ def ResNetGated(n_layer, n_class):
 
 
 if __name__ == '__main__':
-
     # net = ResNetLite(56, 10)
     # x = torch.zeros([16, 3, 32, 32])
 

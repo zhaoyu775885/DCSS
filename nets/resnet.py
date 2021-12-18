@@ -1,7 +1,3 @@
-'''
-Fix bugs for ResNet.
-'''
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,11 +14,13 @@ cfg = {
     164: [27, 27, 27]
 }
 
+
 def _weights_init(m):
     # classname = m.__class__.__name__
     # print(classname)
     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight)
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_planes, out_planes, strides=2):
@@ -45,6 +43,7 @@ class ResidualBlock(nn.Module):
         x += shortcut
         return x
 
+
 class Bottleneck(nn.Module):
     def __init__(self, in_planes, out_planes, strides=2):
         # in_planes: actual channel num of input
@@ -56,10 +55,10 @@ class Bottleneck(nn.Module):
         self.bn1 = nn.BatchNorm2d(out_planes)
         self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=3, stride=strides, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(out_planes)
-        self.conv3 = nn.Conv2d(out_planes, out_planes*expansion, kernel_size=1, stride=1, bias=False)
+        self.conv3 = nn.Conv2d(out_planes, out_planes * expansion, kernel_size=1, stride=1, bias=False)
         self.shortcut = None
-        if strides != 1 or in_planes != out_planes*expansion:
-            self.shortcut = nn.Conv2d(in_planes, out_planes*expansion, kernel_size=1, stride=strides, bias=False)
+        if strides != 1 or in_planes != out_planes * expansion:
+            self.shortcut = nn.Conv2d(in_planes, out_planes * expansion, kernel_size=1, stride=strides, bias=False)
 
     def forward(self, x):
         shortcut = x
@@ -71,6 +70,7 @@ class Bottleneck(nn.Module):
         x = self.conv3(x)
         x += shortcut
         return x
+
 
 class ResNet(nn.Module):
     def __init__(self, n_layer, n_class):
@@ -95,9 +95,9 @@ class ResNet(nn.Module):
 
         self.expansion = 4 if self.cell_fn is Bottleneck else 1
         self.block_list = self._block_layers()
-        self.bn = nn.BatchNorm2d(self.base_n_channel*(2**(len(self.block_n_cell)-1)) * self.expansion)
+        self.bn = nn.BatchNorm2d(self.base_n_channel * (2 ** (len(self.block_n_cell) - 1)) * self.expansion)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(self.base_n_channel*(2**(len(self.block_n_cell)-1)) * self.expansion, self.n_class)
+        self.fc = nn.Linear(self.base_n_channel * (2 ** (len(self.block_n_cell) - 1)) * self.expansion, self.n_class)
         self.apply(_weights_init)
 
     def _block_fn(self, in_planes, out_planes, n_cell, strides):
@@ -106,7 +106,7 @@ class ResNet(nn.Module):
             in_planes *= self.expansion
         blocks = [self.cell_fn(in_planes, out_planes, strides)]
         for _ in range(1, n_cell):
-            blocks.append(self.cell_fn(out_planes*self.expansion, out_planes, 1))
+            blocks.append(self.cell_fn(out_planes * self.expansion, out_planes, 1))
         return nn.ModuleList(blocks)
 
     def _block_layers(self):
@@ -115,7 +115,8 @@ class ResNet(nn.Module):
             if i == 0:
                 block_list.append(self._block_fn(self.base_n_channel, self.base_n_channel, n_cell, 1))
             else:
-                block_list.append(self._block_fn(self.base_n_channel*(2**(i-1)), self.base_n_channel*(2**i), n_cell, 2))
+                block_list.append(
+                    self._block_fn(self.base_n_channel * (2 ** (i - 1)), self.base_n_channel * (2 ** i), n_cell, 2))
         return nn.ModuleList(block_list)
 
     def forward(self, x):
