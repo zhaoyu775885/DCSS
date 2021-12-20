@@ -34,7 +34,7 @@ class FullLearner(AbstractLearner):
 
         self.teacher = teacher
 
-        cudnn.benchmark = False
+        cudnn.benchmark = True
 
     def _setup_loss_fn(self):
         return nn.CrossEntropyLoss().cuda(self.args.local_rank)

@@ -7,7 +7,7 @@ export CUDA_VISIBLE_DEVICES='0'
 
 # imagenet ilsvrc2012
 DATASET='imagenet'
-DATA_PATH='/home/zhaoyu/Data/Imagenet/ILSVRC2012'
+DATA_PATH='/home/zhaoyu/Data/ImageNet/ILSVRC2012'
 
 # network model type and index
 NET='mobilenet'
