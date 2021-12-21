@@ -3,11 +3,11 @@ TRUE=1
 
 # assign global devices
 N_GPU=1
-export CUDA_VISIBLE_DEVICES='0'
+export CUDA_VISIBLE_DEVICES='1'
 
 # imagenet ilsvrc2012
 DATASET='imagenet'
-DATA_PATH='/home/zhaoyu/Data/Imagenet/ILSVRC2012'
+DATA_PATH='/home/zhaoyu/Data/ImageNet/ILSVRC2012'
 
 # network model type and index
 NET='resnet'
@@ -15,7 +15,7 @@ NET_INDEX='18'
 
 # training parameters
 NUM_EPOCH=120
-BATCH_SIZE=128
+BATCH_SIZE=256
 STD_BATCH_SIZE=256
 STD_INIT_LR=1e-1
 MOMENTUM=0.9
